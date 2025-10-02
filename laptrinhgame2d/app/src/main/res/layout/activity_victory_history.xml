@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:background="#2C3E50"
+    android:padding="16dp">
+
+    <!-- Header -->
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center"
+        android:text="VICTORY HISTORY"
+        android:textSize="20sp"
+        android:textStyle="bold"
+        android:textColor="#FFD700"
+        android:shadowColor="#000000"
+        android:shadowDx="2"
+        android:shadowDy="2"
+        android:shadowRadius="3"
+        android:layout_marginBottom="12dp" />
+
+    <!-- Filter Info -->
+    <TextView
+        android:id="@+id/tvTotalVictories"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Total Victories: 0"
+        android:textSize="14sp"
+        android:textColor="#ECF0F1"
+        android:layout_marginBottom="8dp" />
+
+    <!-- History List -->
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/rvHistory"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:background="#34495E"
+        android:padding="6dp" />
+
+    <!-- Back Button -->
+    <Button
+        android:id="@+id/btnBack"
+        android:layout_width="match_parent"
+        android:layout_height="42dp"
+        android:layout_marginTop="8dp"
+        android:text="BACK"
+        android:textSize="13sp"
+        android:textStyle="bold"
+        android:textColor="#FFFFFF"
+        android:background="@drawable/button_pause_bg" />
+
+</LinearLayout>

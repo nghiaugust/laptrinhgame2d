@@ -1,0 +1,202 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/characterSelectionLayout"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="#2C3E50"
+    android:padding="8dp">
+
+    <!-- Title -->
+    <TextView
+        android:id="@+id/titleText"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_centerHorizontal="true"
+        android:layout_marginTop="4dp"
+        android:text="SELECT YOUR HERO"
+        android:textColor="#ECF0F1"
+        android:textSize="20sp"
+        android:textStyle="bold"
+        android:shadowColor="#000000"
+        android:shadowDx="2"
+        android:shadowDy="2"
+        android:shadowRadius="3" />
+
+    <!-- Container for both sides -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_below="@id/titleText"
+        android:layout_marginTop="6dp"
+        android:layout_marginBottom="6dp"
+        android:layout_centerVertical="true"
+        android:orientation="horizontal"
+        android:baselineAligned="false">
+
+        <!-- Left Side - Character Card -->
+        <LinearLayout
+            android:id="@+id/characterContainer"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:orientation="vertical"
+            android:gravity="center"
+            android:layout_marginEnd="8dp"
+            android:background="@drawable/character_card_bg"
+            android:padding="8dp">
+
+            <!-- Character Name -->
+            <TextView
+                android:id="@+id/characterName"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="FIGHTER"
+                android:textColor="#E74C3C"
+                android:textSize="18sp"
+                android:textStyle="bold"
+                android:layout_marginBottom="6dp"
+                android:shadowColor="#000000"
+                android:shadowDx="2"
+                android:shadowDy="2"
+                android:shadowRadius="3" />
+
+            <!-- Character Image -->
+            <ImageView
+                android:id="@+id/characterImage"
+                android:layout_width="120dp"
+                android:layout_height="120dp"
+                android:scaleType="fitCenter"
+                android:background="#34495E"
+                android:padding="6dp"
+                android:layout_marginBottom="6dp" />
+            
+            <!-- Navigation Buttons -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center">
+                
+                <Button
+                    android:id="@+id/prevButton"
+                    android:layout_width="65dp"
+                    android:layout_height="36dp"
+                    android:text="◄"
+                    android:textSize="16sp"
+                    android:textStyle="bold"
+                    android:textColor="#FFFFFF"
+                    android:background="@drawable/button_select_bg"
+                    android:layout_marginEnd="8dp" />
+                
+                <Button
+                    android:id="@+id/nextButton"
+                    android:layout_width="65dp"
+                    android:layout_height="36dp"
+                    android:text="►"
+                    android:textSize="16sp"
+                    android:textStyle="bold"
+                    android:textColor="#FFFFFF"
+                    android:background="@drawable/button_select_bg"
+                    android:layout_marginStart="8dp" />
+                
+            </LinearLayout>
+
+        </LinearLayout>
+
+        <!-- Right Side - Stats and Button -->
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:orientation="vertical"
+            android:gravity="center"
+            android:layout_marginStart="8dp">
+
+            <!-- Stats Title -->
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="HERO STATS"
+                android:textColor="#E74C3C"
+                android:textSize="16sp"
+                android:textStyle="bold"
+                android:layout_marginBottom="6dp"
+                android:shadowColor="#000000"
+                android:shadowDx="2"
+                android:shadowDy="2"
+                android:shadowRadius="3" />
+
+            <!-- Stats Box -->
+            <LinearLayout
+                android:id="@+id/characterStats"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:background="@drawable/character_card_bg"
+                android:padding="8dp"
+                android:layout_marginBottom="10dp">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="❤️ Health: 100"
+                    android:textColor="#ECF0F1"
+                    android:textSize="14sp"
+                    android:textStyle="bold"
+                    android:layout_marginBottom="4dp" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="🛡️ Armor: 100"
+                    android:textColor="#ECF0F1"
+                    android:textSize="14sp"
+                    android:textStyle="bold"
+                    android:layout_marginBottom="4dp" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="⚔️ Damage: 10-25"
+                    android:textColor="#ECF0F1"
+                    android:textSize="14sp"
+                    android:textStyle="bold"
+                    android:layout_marginBottom="4dp" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="⚡ Speed: 8"
+                    android:textColor="#ECF0F1"
+                    android:textSize="14sp"
+                    android:textStyle="bold" />
+
+            </LinearLayout>
+
+            <!-- Select Button -->
+            <Button
+                android:id="@+id/selectButton"
+                android:layout_width="match_parent"
+                android:layout_height="42dp"
+                android:text="SELECT HERO"
+                android:textSize="16sp"
+                android:textStyle="bold"
+                android:textColor="#FFFFFF"
+                android:background="@drawable/button_select_bg"
+                android:elevation="8dp"
+                android:layout_marginBottom="4dp" />
+
+            <!-- Info Text -->
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="◄ ► to switch heroes"
+                android:textColor="#95A5A6"
+                android:textSize="10sp"
+                android:textStyle="italic" />
+
+        </LinearLayout>
+
+    </LinearLayout>
+
+</RelativeLayout>
