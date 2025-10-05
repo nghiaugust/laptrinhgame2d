@@ -1,0 +1,10 @@
+# Map 1 Design
+
+#### Initial Design
+- Level: 1
+- Layout: 
+  - ####
+  - #  
+  - ####
+  -  
+- Features: Basic enemies, collectibles
