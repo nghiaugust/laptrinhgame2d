@@ -22,19 +22,19 @@ class MapSelectionActivity : AppCompatActivity() {
             id = 1,
             name = "GRASSLAND",
             difficulty = "Easy ⭐",
-            description = "A peaceful meadow with green hills and clear skies. Perfect for beginners!"
+            description = "A peaceful meadow with green hills and clear skies. Perfect for beginners to learn the ropes!"
         ),
         MapInfo(
             id = 2,
             name = "DESERT",
             difficulty = "Medium ⭐⭐",
-            description = "A harsh desert environment with scorching heat and dangerous cacti. For experienced warriors!"
+            description = "A scorching desert with cacti and sandstorms. Watch out for mirages and burning heat!"
         ),
         MapInfo(
             id = 3,
             name = "VOLCANO",
             difficulty = "Hard ⭐⭐⭐",
-            description = "A dangerous volcanic region with flowing lava and deadly rocks. Only for the bravest heroes!"
+            description = "A dangerous volcanic wasteland with flowing lava and toxic smoke. Only for the bravest warriors!"
         )
     )
 
@@ -74,11 +74,11 @@ class MapSelectionActivity : AppCompatActivity() {
         mapDifficulty.text = "Difficulty: ${map.difficulty}"
         mapDescription.text = map.description
 
-        // Set màu preview cho map image
+        // Set màu preview cho map image - CẬP NHẬT MÀEU MỚI
         when (map.id) {
-            1 -> mapImage.setBackgroundColor(android.graphics.Color.rgb(34, 139, 34)) // Green
-            2 -> mapImage.setBackgroundColor(android.graphics.Color.rgb(238, 203, 173)) // Sand
-            3 -> mapImage.setBackgroundColor(android.graphics.Color.rgb(139, 69, 19)) // Brown/Red
+            1 -> mapImage.setBackgroundColor(android.graphics.Color.rgb(34, 139, 34)) // Green cho Grassland
+            2 -> mapImage.setBackgroundColor(android.graphics.Color.rgb(238, 203, 173)) // Sandy brown cho Desert
+            3 -> mapImage.setBackgroundColor(android.graphics.Color.rgb(139, 69, 19)) // Dark red-brown cho Volcano
         }
     }
 
