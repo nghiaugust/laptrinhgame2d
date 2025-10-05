@@ -1,0 +1,192 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/mapSelectionLayout"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="#2C3E50"
+    android:padding="8dp">
+
+    <!-- Title -->
+    <TextView
+        android:id="@+id/titleText"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_centerHorizontal="true"
+        android:layout_marginTop="4dp"
+        android:text="SELECT MAP"
+        android:textColor="#ECF0F1"
+        android:textSize="20sp"
+        android:textStyle="bold"
+        android:shadowColor="#000000"
+        android:shadowDx="2"
+        android:shadowDy="2"
+        android:shadowRadius="3" />
+
+    <!-- Container for both sides -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_below="@id/titleText"
+        android:layout_marginTop="6dp"
+        android:layout_marginBottom="6dp"
+        android:layout_centerVertical="true"
+        android:orientation="horizontal"
+        android:baselineAligned="false">
+
+        <!-- Left Side - Map Preview Card -->
+        <LinearLayout
+            android:id="@+id/mapContainer"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:orientation="vertical"
+            android:gravity="center"
+            android:layout_marginEnd="8dp"
+            android:background="@drawable/character_card_bg"
+            android:padding="8dp">
+
+            <!-- Map Name -->
+            <TextView
+                android:id="@+id/mapName"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="GRASSLAND"
+                android:textColor="#E74C3C"
+                android:textSize="18sp"
+                android:textStyle="bold"
+                android:layout_marginBottom="6dp"
+                android:shadowColor="#000000"
+                android:shadowDx="2"
+                android:shadowDy="2"
+                android:shadowRadius="3" />
+
+            <!-- Map Preview Image -->
+            <ImageView
+                android:id="@+id/mapImage"
+                android:layout_width="120dp"
+                android:layout_height="120dp"
+                android:scaleType="centerCrop"
+                android:background="#34495E"
+                android:padding="6dp"
+                android:layout_marginBottom="6dp" />
+
+            <!-- Navigation Buttons -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center">
+
+                <Button
+                    android:id="@+id/prevMapButton"
+                    android:layout_width="65dp"
+                    android:layout_height="36dp"
+                    android:text="◄"
+                    android:textSize="16sp"
+                    android:textStyle="bold"
+                    android:textColor="#FFFFFF"
+                    android:background="@drawable/button_select_bg"
+                    android:layout_marginEnd="8dp" />
+
+                <Button
+                    android:id="@+id/nextMapButton"
+                    android:layout_width="65dp"
+                    android:layout_height="36dp"
+                    android:text="►"
+                    android:textSize="16sp"
+                    android:textStyle="bold"
+                    android:textColor="#FFFFFF"
+                    android:background="@drawable/button_select_bg"
+                    android:layout_marginStart="8dp" />
+
+            </LinearLayout>
+
+        </LinearLayout>
+
+        <!-- Right Side - Map Info and Button -->
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:orientation="vertical"
+            android:gravity="center"
+            android:layout_marginStart="8dp">
+
+            <!-- Difficulty Title -->
+            <TextView
+                android:id="@+id/mapDifficulty"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Difficulty: Easy ⭐"
+                android:textColor="#E74C3C"
+                android:textSize="16sp"
+                android:textStyle="bold"
+                android:layout_marginBottom="6dp"
+                android:shadowColor="#000000"
+                android:shadowDx="2"
+                android:shadowDy="2"
+                android:shadowRadius="3" />
+
+            <!-- Map Info Box -->
+            <LinearLayout
+                android:id="@+id/mapInfoBox"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:background="@drawable/character_card_bg"
+                android:padding="8dp"
+                android:layout_marginBottom="10dp">
+
+                <TextView
+                    android:id="@+id/mapDescription"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="A peaceful meadow with green hills and clear skies. Perfect for beginners!"
+                    android:textColor="#ECF0F1"
+                    android:textSize="13sp"
+                    android:lineSpacingExtra="2dp" />
+
+            </LinearLayout>
+
+            <!-- Select Button -->
+            <Button
+                android:id="@+id/selectMapButton"
+                android:layout_width="match_parent"
+                android:layout_height="42dp"
+                android:text="SELECT MAP"
+                android:textSize="16sp"
+                android:textStyle="bold"
+                android:textColor="#FFFFFF"
+                android:background="@drawable/button_select_bg"
+                android:elevation="8dp"
+                android:layout_marginBottom="4dp" />
+
+            <!-- Info Text -->
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="◄ ► to switch maps"
+                android:textColor="#95A5A6"
+                android:textSize="10sp"
+                android:textStyle="italic" />
+
+        </LinearLayout>
+
+    </LinearLayout>
+
+    <!-- Back Button ở góc dưới trái -->
+    <Button
+        android:id="@+id/backButton"
+        android:layout_width="80dp"
+        android:layout_height="32dp"
+        android:layout_alignParentBottom="true"
+        android:layout_alignParentStart="true"
+        android:layout_marginStart="8dp"
+        android:layout_marginBottom="8dp"
+        android:text="◄ BACK"
+        android:textSize="12sp"
+        android:textStyle="bold"
+        android:textColor="#FFFFFF"
+        android:background="@drawable/button_select_bg" />
+
+</RelativeLayout>

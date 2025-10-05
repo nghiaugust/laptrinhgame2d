@@ -11,27 +11,29 @@ import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
 
 class CharacterSelectionActivity : AppCompatActivity() {
-    
+
     private var selectedCharacter = "Fighter"
-    
+    private var selectedMap = 1 // Nhận từ MapSelectionActivity
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_character_selection)
-        
+
         // Ẩn action bar
         supportActionBar?.hide()
-        
-        // KHÔNG load background cho màn hình này
-        
+
+        // Nhận map đã chọn từ MapSelectionActivity
+        selectedMap = intent.getIntExtra("SELECTED_MAP", 1)
+
         val characterImage = findViewById<ImageView>(R.id.characterImage)
         val characterName = findViewById<TextView>(R.id.characterName)
         val selectButton = findViewById<Button>(R.id.selectButton)
         val prevButton = findViewById<Button>(R.id.prevButton)
         val nextButton = findViewById<Button>(R.id.nextButton)
-        
+
         // Hiển thị Fighter mặc định
         updateCharacterDisplay(characterImage, characterName)
-        
+
         // Nút Previous
         prevButton.setOnClickListener {
             selectedCharacter = when (selectedCharacter) {
@@ -42,7 +44,7 @@ class CharacterSelectionActivity : AppCompatActivity() {
             }
             updateCharacterDisplay(characterImage, characterName)
         }
-        
+
         // Nút Next
         nextButton.setOnClickListener {
             selectedCharacter = when (selectedCharacter) {
@@ -53,17 +55,18 @@ class CharacterSelectionActivity : AppCompatActivity() {
             }
             updateCharacterDisplay(characterImage, characterName)
         }
-        
+
         // Xử lý sự kiện click button Select
         selectButton.setOnClickListener {
             // Chuyển sang MainActivity (game) với nhân vật đã chọn
+            // KHÔNG truyền map vì GameView không cần
             val intent = Intent(this, MainActivity::class.java)
             intent.putExtra("CHARACTER_TYPE", selectedCharacter)
             startActivity(intent)
             finish()
         }
     }
-    
+
     private fun updateCharacterDisplay(imageView: ImageView, nameView: TextView) {
         try {
             when (selectedCharacter) {
@@ -72,7 +75,7 @@ class CharacterSelectionActivity : AppCompatActivity() {
                     val bitmap = BitmapFactory.decodeStream(inputStream)
                     imageView.setImageBitmap(bitmap)
                     inputStream.close()
-                    
+
                     nameView.text = "FIGHTER"
                 }
                 "Samurai_Archer" -> {
@@ -80,7 +83,7 @@ class CharacterSelectionActivity : AppCompatActivity() {
                     val bitmap = BitmapFactory.decodeStream(inputStream)
                     imageView.setImageBitmap(bitmap)
                     inputStream.close()
-                    
+
                     nameView.text = "SAMURAI ARCHER"
                 }
                 "Samurai_Commander" -> {
@@ -88,7 +91,7 @@ class CharacterSelectionActivity : AppCompatActivity() {
                     val bitmap = BitmapFactory.decodeStream(inputStream)
                     imageView.setImageBitmap(bitmap)
                     inputStream.close()
-                    
+
                     nameView.text = "SAMURAI COMMANDER"
                 }
             }
