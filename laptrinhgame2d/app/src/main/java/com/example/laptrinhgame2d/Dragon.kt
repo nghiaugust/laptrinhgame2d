@@ -8,7 +8,7 @@ import android.graphics.Matrix
 import java.io.IOException
 import kotlin.math.sqrt
 
-class Medusa(private val context: Context, private var x: Float, var y: Float) {
+class Dragon(private val context: Context, private var x: Float, var y: Float) {
     
     private val idleFrames = mutableListOf<Bitmap>()
     private val walkFrames = mutableListOf<Bitmap>()
@@ -23,13 +23,13 @@ class Medusa(private val context: Context, private var x: Float, var y: Float) {
     
     private var state = State.IDLE
     private var facingRight = true
-    private val speed = 3.5f
+    private val speed = 3f
     
     private var isAnimationLocked = false
     private var isDead = false
     
-    private var health = 100
-    private val maxHealth = 100
+    private var health = 180
+    private val maxHealth = 180
     
     // Dead timer
     private var deadTimer = 0
@@ -39,19 +39,19 @@ class Medusa(private val context: Context, private var x: Float, var y: Float) {
     private var targetX = x
     private var targetY = y
     private var attackCooldown = 0
-    private val attackCooldownMax = 80 // Cooldown giữa các lần bắn đá
-    private val attackRange = 480f // Tầm bắn
-    private val stopDistance = 220f // Dừng lại ở khoảng cách này để bắn
-    private val detectionRange = 580f // Phát hiện player
-    private val projectileDamage = 22
+    private val attackCooldownMax = 70 // Cooldown giữa các lần phun lửa
+    private val attackRange = 280f // Tầm phun lửa (cận chiến)
+    private val stopDistance = 200f // Dừng lại ở khoảng cách này để tấn công
+    private val detectionRange = 450f // Phát hiện player
+    private val fireDamage = 30 // Damage của lửa
     
-    // Stone Projectiles
-    val projectiles = mutableListOf<MedusaProjectile>()
+    // Fire projectiles (phun lửa tầm ngắn)
+    val fireProjectiles = mutableListOf<DragonFire>()
     
     // Idle movement
     private var idleMovementTimer = 0
     private var idleMovementDirection = 1f
-    private val idleMovementDistance = 50f
+    private val idleMovementDistance = 40f
     private var originalIdleX = x
     
     // Damage texts
@@ -70,31 +70,28 @@ class Medusa(private val context: Context, private var x: Float, var y: Float) {
         try {
             // Load idle frames (3 frames)
             for (i in 1..3) {
-                val bitmap = loadBitmap("enemies/medusa/idle/Idle$i.png")
+                val bitmap = loadBitmap("enemies/dragon/idle/Idle$i.png")
                 idleFrames.add(bitmap)
             }
             
-            // Load walk frames (4 frames)
-            for (i in 1..4) {
-                val bitmap = loadBitmap("enemies/medusa/walk/Walk$i.png")
+            // Load walk frames (5 frames)
+            for (i in 1..5) {
+                val bitmap = loadBitmap("enemies/dragon/walk/Walk$i.png")
                 walkFrames.add(bitmap)
             }
             
-            // Load attack frames (6 frames)
-            for (i in 1..6) {
-                val bitmap = loadBitmap("enemies/medusa/attack/Attack$i.png")
+            // Load attack frames (4 frames) - phun lửa
+            for (i in 1..4) {
+                val bitmap = loadBitmap("enemies/dragon/attack/Attack$i.png")
                 attackFrames.add(bitmap)
             }
             
-            // Load hurt frames (2 frames)
-            for (i in 1..2) {
-                val bitmap = loadBitmap("enemies/medusa/hurt/Hurt$i.png")
-                hurtFrames.add(bitmap)
-            }
+            // Load hurt frames - sử dụng idle frames vì không có hurt animation
+            hurtFrames.addAll(idleFrames)
             
-            // Load dead frames (6 frames, trong folder "deadth")
-            for (i in 1..6) {
-                val bitmap = loadBitmap("enemies/medusa/deadth/Death$i.png")
+            // Load dead frames (5 frames)
+            for (i in 1..5) {
+                val bitmap = loadBitmap("enemies/dragon/deadth/Death$i.png")
                 deadFrames.add(bitmap)
             }
             
@@ -113,7 +110,7 @@ class Medusa(private val context: Context, private var x: Float, var y: Float) {
         }
     }
     
-    fun update(playerX: Float, playerY: Float, playerIsDead: Boolean) {
+    fun update(playerX: Float, playerY: Float) {
         if (isDead) {
             deadTimer++
             return
@@ -122,20 +119,15 @@ class Medusa(private val context: Context, private var x: Float, var y: Float) {
         // Update cooldowns
         if (attackCooldown > 0) attackCooldown--
         
-        // Update projectiles
-        projectiles.removeAll { it.isDead() }
-        projectiles.forEach { it.update() }
+        // Update fire projectiles
+        fireProjectiles.removeAll { it.isDead() }
+        fireProjectiles.forEach { it.update() }
         
         // Update damage texts
         damageTexts.forEach { it.update() }
         damageTexts.removeAll { it.isFinished() }
         
-        if (playerIsDead) {
-            setState(State.IDLE)
-            return
-        }
-        
-        // Lưu vị trí player để bắn đá
+        // Lưu vị trí player để phun lửa
         targetX = playerX
         targetY = playerY
         
@@ -150,7 +142,7 @@ class Medusa(private val context: Context, private var x: Float, var y: Float) {
                 }
             }
             
-            // Tấn công nếu trong tầm
+            // Tấn công (phun lửa) nếu trong tầm
             distance <= attackRange && attackCooldown == 0 && state != State.ATTACK && state != State.HURT -> {
                 facingRight = playerX > x
                 setState(State.ATTACK)
@@ -203,9 +195,9 @@ class Medusa(private val context: Context, private var x: Float, var y: Float) {
                 if (currentFrame < currentFrames.size - 1) {
                     currentFrame++
                     
-                    // Spawn stone projectile at frame 3 (attack animation có 6 frames: 0-5)
-                    if (state == State.ATTACK && currentFrame == 3) {
-                        spawnProjectile()
+                    // Spawn fire projectile at frame 2 (attack animation có 4 frames: 0-3)
+                    if (state == State.ATTACK && currentFrame == 2) {
+                        spawnFire()
                     }
                 } else {
                     // Animation kết thúc
@@ -234,14 +226,14 @@ class Medusa(private val context: Context, private var x: Float, var y: Float) {
         }
     }
     
-    private fun spawnProjectile() {
-        // Spawn stone cách xa medusa và ở vị trí tay
-        val offsetX = if (facingRight) 130f else -130f
-        val projectileX = x + offsetX
-        val projectileY = y + 10f // Hơi thấp xuống một chút
+    private fun spawnFire() {
+        // Spawn lửa từ miệng rồng (gần hơn vì là cận chiến)
+        val offsetX = if (facingRight) 80f else -80f
+        val fireX = x + offsetX
+        val fireY = y - 10f // Hơi cao lên một chút (miệng rồng)
         
-        val projectile = MedusaProjectile(context, projectileX, projectileY, targetX, targetY, projectileDamage)
-        projectiles.add(projectile)
+        val fire = DragonFire(context, fireX, fireY, targetX, targetY, fireDamage, facingRight)
+        fireProjectiles.add(fire)
     }
     
     fun draw(canvas: Canvas) {
@@ -268,8 +260,8 @@ class Medusa(private val context: Context, private var x: Float, var y: Float) {
             canvas.drawBitmap(bitmap, x - bitmap.width / 2, y - bitmap.height / 2, paint)
         }
         
-        // Draw projectiles
-        projectiles.forEach { it.draw(canvas) }
+        // Draw fire projectiles
+        fireProjectiles.forEach { it.draw(canvas) }
         
         // Draw damage texts
         damageTexts.forEach { it.draw(canvas) }
@@ -375,7 +367,7 @@ class Medusa(private val context: Context, private var x: Float, var y: Float) {
     fun getX(): Float = x
     
     fun isDead(): Boolean = isDead
-    fun shouldRemove(): Boolean = isDead && deadTimer >= deadDuration
+    fun shouldBeRemoved(): Boolean = isDead && deadTimer >= deadDuration
     fun getAttackRange(): Float = attackRange
     
     fun isCollidingWith(targetX: Float, targetY: Float, range: Float): Boolean {

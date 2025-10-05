@@ -14,6 +14,18 @@ import java.io.IOException
 
 class GameView(context: Context, private val characterType: String = "Fighter") : SurfaceView(context), SurfaceHolder.Callback {
     
+    // ==================== ENEMY SPAWN CONFIGURATION ====================
+    // Điều chỉnh số lượng quái ở đây
+    companion object {
+        const val NUM_SKELETONS = 3      // Số lượng Skeleton
+        const val NUM_DEMONS = 3         // Số lượng Demon
+        const val NUM_MEDUSAS = 3        // Số lượng Medusa (tấn công tầm xa bằng đá)
+        const val NUM_JINNS = 3          // Số lượng Jinn (quái mới)
+        const val NUM_SMALL_DRAGONS = 3  // Số lượng Small Dragon
+        const val NUM_DRAGONS = 3        // Số lượng Dragon (phun lửa cận chiến)
+    }
+    // ===================================================================
+    
     private var gameThread: GameThread? = null
     private val gameContext: Context = context
     private var fighter: Fighter? = null
@@ -33,6 +45,9 @@ class GameView(context: Context, private val characterType: String = "Fighter") 
     private val skeletons = mutableListOf<Skeleton>()
     private val demons = mutableListOf<Demon>()
     private val medusas = mutableListOf<Medusa>()
+    private val jinns = mutableListOf<Jinn>()
+    private val smallDragons = mutableListOf<SmallDragon>()
+    private val dragons = mutableListOf<Dragon>()
     
     // Camera
     private var cameraX = 0f
@@ -51,7 +66,8 @@ class GameView(context: Context, private val characterType: String = "Fighter") 
     private var isVictory = false
     private var gameStartTime: Long = 0
     private var victoryManager: VictoryManager
-    private val totalEnemies = 8 // 5 skeletons + 3 demons (tạm thời bỏ 3 medusas)
+    private val totalEnemies: Int
+        get() = NUM_SKELETONS + NUM_DEMONS + NUM_MEDUSAS + NUM_JINNS + NUM_SMALL_DRAGONS + NUM_DRAGONS
     
     init {
         holder.addCallback(this)
@@ -79,30 +95,63 @@ class GameView(context: Context, private val characterType: String = "Fighter") 
         spawnSkeletons()
         spawnDemons()
         spawnMedusas()
+        spawnJinns()
+        spawnSmallDragons()
+        spawnDragons()
     }
     
     private fun spawnSkeletons() {
-        // Spawn skeletons ở các vị trí khác nhau trong thế giới game rộng hơn
-        skeletons.add(Skeleton(gameContext, 800f, 400f))
-        skeletons.add(Skeleton(gameContext, 1200f, 600f))
-        skeletons.add(Skeleton(gameContext, 1500f, 300f))
-        skeletons.add(Skeleton(gameContext, 600f, 800f))
-        skeletons.add(Skeleton(gameContext, 2000f, 500f))
+        // Spawn skeletons
+        for (i in 0 until NUM_SKELETONS) {
+            val x = 800f + (i * 400f) + (Math.random() * 200f).toFloat() // Cách đều khoảng 400px, random thêm 0-200px
+            val y = 400f + (Math.random() * 400f).toFloat() // Random Y từ 400-800
+            skeletons.add(Skeleton(gameContext, x, y))
+        }
     }
     
     private fun spawnDemons() {
-        // Spawn demons ở xa hơn và ít hơn (vì mạnh hơn)
-        demons.add(Demon(gameContext, 1800f, 400f))
-        demons.add(Demon(gameContext, 2500f, 600f))
-        demons.add(Demon(gameContext, 3000f, 500f))
+        // Spawn demons
+        for (i in 0 until NUM_DEMONS) {
+            val x = 900f + (i * 400f) + (Math.random() * 300f).toFloat() // Cách đều khoảng 600px
+            val y = 400f + (Math.random() * 400f).toFloat() // Random Y từ 400-800
+            demons.add(Demon(gameContext, x, y))
+        }
     }
     
     private fun spawnMedusas() {
-        // Spawn medusas ở khu vực xa (ranged enemies)
-        // Tạm thời không spawn medusa để test
-        // medusas.add(Medusa(gameContext, 2200f, 400f))
-        // medusas.add(Medusa(gameContext, 3500f, 600f))
-        // medusas.add(Medusa(gameContext, 4000f, 500f))
+        // Spawn medusas
+        for (i in 0 until NUM_MEDUSAS) {
+            val x = 1000f + (i * 400f) + (Math.random() * 300f).toFloat() // Cách đều khoảng 700px
+            val y = 400f + (Math.random() * 400f).toFloat() // Random Y từ 400-800
+            medusas.add(Medusa(gameContext, x, y))
+        }
+    }
+    
+    private fun spawnJinns() {
+        // Spawn jinns
+        for (i in 0 until NUM_JINNS) {
+            val x = 1100f + (i * 400f) + (Math.random() * 400f).toFloat() // Cách đều khoảng 800px
+            val y = 400f + (Math.random() * 400f).toFloat() // Random Y từ 400-800
+            jinns.add(Jinn(gameContext, x, y))
+        }
+    }
+    
+    private fun spawnSmallDragons() {
+        // Spawn small dragons (rồng nhỏ - tầm xa)
+        for (i in 0 until NUM_SMALL_DRAGONS) {
+            val x = 1200f + (i * 400f) + (Math.random() * 300f).toFloat() // Cách đều khoảng 600px, spawn xa
+            val y = 400f + (Math.random() * 400f).toFloat() // Random Y từ 400-800
+            smallDragons.add(SmallDragon(gameContext, x, y))
+        }
+    }
+    
+    private fun spawnDragons() {
+        // Spawn dragons (rồng lớn - phun lửa cận chiến)
+        for (i in 0 until NUM_DRAGONS) {
+            val x = 1300f + (i * 500f) + (Math.random() * 200f).toFloat() // Cách đều khoảng 700px
+            val y = 400f + (Math.random() * 400f).toFloat() // Random Y từ 400-800
+            dragons.add(Dragon(gameContext, x, y))
+        }
     }
     
     override fun surfaceCreated(holder: SurfaceHolder) {
@@ -142,7 +191,22 @@ class GameView(context: Context, private val characterType: String = "Fighter") 
         
         // Cập nhật vị trí spawn của medusas
         medusas.forEach { medusa ->
-            medusa.setY(groundY - 200f) // Cùng độ cao với nhân vật
+            medusa.y = groundY - 200f // Cùng độ cao với nhân vật
+        }
+        
+        // Cập nhật vị trí spawn của jinns (cùng độ cao với skeleton)
+        jinns.forEach { jinn ->
+            jinn.y = groundY - 200f
+        }
+        
+        // Cập nhật vị trí spawn của small dragons (cùng độ cao)
+        smallDragons.forEach { dragon ->
+            dragon.y = groundY - 200f
+        }
+        
+        // Cập nhật vị trí spawn của dragons (cùng độ cao)
+        dragons.forEach { dragon ->
+            dragon.y = groundY - 200f
         }
         
         joystick.centerY = screenHeight - 200f
@@ -314,7 +378,22 @@ class GameView(context: Context, private val characterType: String = "Fighter") 
         
         // Giữ medusas luôn ở trên mặt đất
         medusas.forEach { medusa ->
-            medusa.setY(groundY - 200f)
+            medusa.y = groundY - 200f
+        }
+        
+        // Giữ jinns luôn ở trên mặt đất (cùng độ cao với skeleton để dễ đánh)
+        jinns.forEach { jinn ->
+            jinn.y = groundY - 200f
+        }
+        
+        // Giữ small dragons luôn ở trên mặt đất
+        smallDragons.forEach { dragon ->
+            dragon.y = groundY - 200f
+        }
+        
+        // Giữ dragons luôn ở trên mặt đất
+        dragons.forEach { dragon ->
+            dragon.y = groundY - 200f
         }
         
         // Lấy vị trí và trạng thái của nhân vật đang chơi
@@ -359,13 +438,25 @@ class GameView(context: Context, private val characterType: String = "Fighter") 
         // Xóa medusas đã chết và hết thời gian
         medusas.removeAll { it.shouldRemove() }
         
+        // Xóa jinns đã chết và hết thời gian
+        jinns.removeAll { it.shouldBeRemoved() }
+        
+        // Xóa small dragons đã chết và hết thời gian
+        smallDragons.removeAll { it.shouldBeRemoved() }
+        
+        // Xóa dragons đã chết và hết thời gian
+        dragons.removeAll { it.shouldBeRemoved() }
+        
         // Kiểm tra chiến thắng (tất cả quái đã chết - không cần chờ animation)
         if (!isVictory) {
             val allSkeletonsDead = skeletons.all { it.isDead() }
             val allDemonsDead = demons.all { it.isDead() }
             val allMedusasDead = medusas.isEmpty() || medusas.all { it.isDead() }
+            val allJinnsDead = jinns.isEmpty() || jinns.all { it.isDead() }
+            val allSmallDragonsDead = smallDragons.isEmpty() || smallDragons.all { it.isDead() }
+            val allDragonsDead = dragons.isEmpty() || dragons.all { it.isDead() }
             
-            if (allSkeletonsDead && allDemonsDead && allMedusasDead) {
+            if (allSkeletonsDead && allDemonsDead && allMedusasDead && allJinnsDead && allSmallDragonsDead && allDragonsDead) {
                 isVictory = true
                 showVictory()
             }
@@ -424,15 +515,78 @@ class GameView(context: Context, private val characterType: String = "Fighter") 
             medusa.update(playerX, playerY, playerIsDead)
             
             if (!medusa.isDead()) {
-                // Kiểm tra va chạm stones với player
-                for (stone in medusa.stones) {
-                    if (stone.checkCollision(playerX, playerY, 100f, 200f)) {
-                        // Stone hit player
-                        fighter?.takeDamage(stone.getDamage())
-                        samuraiArcher?.takeDamage(stone.getDamage())
-                        samuraiCommander?.takeDamage(stone.getDamage())
-                        stone.setDamageDealt()
-                        stone.startBreaking()
+                // Kiểm tra va chạm stone projectiles với player
+                for (projectile in medusa.projectiles) {
+                    // Kiểm tra collision khi đang bay hoặc đang nổ
+                    if (projectile.isCollidingWith(playerX, playerY, 100f)) {
+                        // Nếu chưa nổ, trigger explosion
+                        if (!projectile.canDealDamage()) {
+                            projectile.startExploding()
+                        }
+                        
+                        // Gây damage khi đang nổ và chưa deal damage
+                        if (projectile.canDealDamage()) {
+                            fighter?.takeDamage(projectile.getDamage())
+                            samuraiArcher?.takeDamage(projectile.getDamage())
+                            samuraiCommander?.takeDamage(projectile.getDamage())
+                            projectile.markDamageDealt()
+                        }
+                    }
+                }
+            }
+        }
+        
+        // Cập nhật jinns
+        for (jinn in jinns) {
+            jinn.update(playerX, playerY)
+            
+            if (!jinn.isDead()) {
+                // Kiểm tra va chạm projectiles của jinn với player
+                for (projectile in jinn.projectiles) {
+                    // Tăng range lên 100f để dễ chạm hơn khi explosion
+                    if (projectile.canDealDamage() && projectile.isCollidingWith(playerX, playerY, 100f)) {
+                        // Projectile hit player
+                        fighter?.takeDamage(projectile.getDamage())
+                        samuraiArcher?.takeDamage(projectile.getDamage())
+                        samuraiCommander?.takeDamage(projectile.getDamage())
+                        projectile.markDamageDealt()
+                    }
+                }
+            }
+        }
+        
+        // Cập nhật small dragons
+        for (dragon in smallDragons) {
+            dragon.update(playerX, playerY)
+            
+            if (!dragon.isDead()) {
+                // Kiểm tra va chạm fireballs của small dragon với player
+                for (projectile in dragon.projectiles) {
+                    // Tăng range lên 110f (fireball lớn hơn)
+                    if (projectile.canDealDamage() && projectile.isCollidingWith(playerX, playerY, 110f)) {
+                        // Fireball hit player
+                        fighter?.takeDamage(projectile.getDamage())
+                        samuraiArcher?.takeDamage(projectile.getDamage())
+                        samuraiCommander?.takeDamage(projectile.getDamage())
+                        projectile.markDamageDealt()
+                    }
+                }
+            }
+        }
+        
+        // Cập nhật dragons (phun lửa cận chiến)
+        for (dragon in dragons) {
+            dragon.update(playerX, playerY)
+            
+            if (!dragon.isDead()) {
+                // Kiểm tra va chạm fire projectiles với player
+                for (fire in dragon.fireProjectiles) {
+                    if (fire.canDealDamage() && fire.isCollidingWith(playerX, playerY, 90f)) {
+                        // Fire hit player
+                        fighter?.takeDamage(fire.getDamage())
+                        samuraiArcher?.takeDamage(fire.getDamage())
+                        samuraiCommander?.takeDamage(fire.getDamage())
+                        fire.markDamageDealt()
                     }
                 }
             }
@@ -499,6 +653,63 @@ class GameView(context: Context, private val characterType: String = "Fighter") 
                     }
                 }
             }
+            
+            // Kiểm tra player attack hit jinns
+            for (jinn in jinns) {
+                if (!jinn.isDead()) {
+                    if (jinn.isCollidingWith(playerX, playerY, attackRange)) {
+                        // Kiểm tra hướng tấn công
+                        val dx = jinn.getX() - playerX
+                        val isFacingJinn = (dx > 0 && playerFacingRight) || (dx < 0 && !playerFacingRight)
+                        
+                        if (isFacingJinn) {
+                            jinn.takeDamage(damage)
+                            fighter?.markDamageDealt()
+                            samuraiArcher?.markDamageDealt()
+                            samuraiCommander?.markDamageDealt()
+                            break
+                        }
+                    }
+                }
+            }
+            
+            // Kiểm tra player attack hit small dragons
+            for (dragon in smallDragons) {
+                if (!dragon.isDead()) {
+                    if (dragon.isCollidingWith(playerX, playerY, attackRange)) {
+                        // Kiểm tra hướng tấn công
+                        val dx = dragon.getX() - playerX
+                        val isFacingDragon = (dx > 0 && playerFacingRight) || (dx < 0 && !playerFacingRight)
+                        
+                        if (isFacingDragon) {
+                            dragon.takeDamage(damage)
+                            fighter?.markDamageDealt()
+                            samuraiArcher?.markDamageDealt()
+                            samuraiCommander?.markDamageDealt()
+                            break
+                        }
+                    }
+                }
+            }
+            
+            // Kiểm tra player attack hit dragons
+            for (dragon in dragons) {
+                if (!dragon.isDead()) {
+                    if (dragon.isCollidingWith(playerX, playerY, attackRange)) {
+                        // Kiểm tra hướng tấn công
+                        val dx = dragon.getX() - playerX
+                        val isFacingDragon = (dx > 0 && playerFacingRight) || (dx < 0 && !playerFacingRight)
+                        
+                        if (isFacingDragon) {
+                            dragon.takeDamage(damage)
+                            fighter?.markDamageDealt()
+                            samuraiArcher?.markDamageDealt()
+                            samuraiCommander?.markDamageDealt()
+                            break
+                        }
+                    }
+                }
+            }
         }
         
         // Kiểm tra arrows của Samurai_Archer hit skeletons
@@ -527,8 +738,41 @@ class GameView(context: Context, private val characterType: String = "Fighter") 
             // Kiểm tra arrow hit medusas
             for (medusa in medusas) {
                 if (!medusa.isDead() && arrow.isActive()) {
-                    if (arrow.checkCollision(medusa.getX(), medusa.getY(), 80f)) {
+                    if (arrow.checkCollision(medusa.getX(), medusa.y, 80f)) {
                         medusa.takeDamage(15)
+                        arrow.deactivate()
+                        break
+                    }
+                }
+            }
+            
+            // Kiểm tra arrow hit jinns
+            for (jinn in jinns) {
+                if (!jinn.isDead() && arrow.isActive()) {
+                    if (arrow.checkCollision(jinn.getX(), jinn.y, 80f)) {
+                        jinn.takeDamage(15)
+                        arrow.deactivate()
+                        break
+                    }
+                }
+            }
+
+            // Kiểm tra arrow hit small dragons
+            for (smallDragon in smallDragons) {
+                if (!smallDragon.isDead() && arrow.isActive()) {
+                    if (arrow.checkCollision(smallDragon.getX(), smallDragon.y, 120f)) {
+                        smallDragon.takeDamage(15)
+                        arrow.deactivate()
+                        break
+                    }
+                }
+            }
+            
+            // Kiểm tra arrow hit dragons
+            for (dragon in dragons) {
+                if (!dragon.isDead() && arrow.isActive()) {
+                    if (arrow.checkCollision(dragon.getX(), dragon.y, 120f)) {
+                        dragon.takeDamage(15)
                         arrow.deactivate()
                         break
                     }
@@ -562,8 +806,41 @@ class GameView(context: Context, private val characterType: String = "Fighter") 
             // Kiểm tra skill projectile hit medusas
             for (medusa in medusas) {
                 if (!medusa.isDead() && skillProj.isActive()) {
-                    if (skillProj.checkCollision(medusa.getX(), medusa.getY(), 80f)) {
+                    if (skillProj.checkCollision(medusa.getX(), medusa.y, 80f)) {
                         medusa.takeDamage(skillProj.getDamage())
+                        skillProj.deactivate()
+                        break
+                    }
+                }
+            }
+            
+            // Kiểm tra skill projectile hit jinns
+            for (jinn in jinns) {
+                if (!jinn.isDead() && skillProj.isActive()) {
+                    if (skillProj.checkCollision(jinn.getX(), jinn.y, 80f)) {
+                        jinn.takeDamage(skillProj.getDamage())
+                        skillProj.deactivate()
+                        break
+                    }
+                }
+            }
+
+            // Kiểm tra skill projectile hit small dragons
+            for (smallDragon in smallDragons) {
+                if (!smallDragon.isDead() && skillProj.isActive()) {
+                    if (skillProj.checkCollision(smallDragon.getX(), smallDragon.y, 120f)) {
+                        smallDragon.takeDamage(skillProj.getDamage())
+                        skillProj.deactivate()
+                        break
+                    }
+                }
+            }
+            
+            // Kiểm tra skill projectile hit dragons
+            for (dragon in dragons) {
+                if (!dragon.isDead() && skillProj.isActive()) {
+                    if (skillProj.checkCollision(dragon.getX(), dragon.y, 120f)) {
+                        dragon.takeDamage(skillProj.getDamage())
                         skillProj.deactivate()
                         break
                     }
@@ -594,7 +871,22 @@ class GameView(context: Context, private val characterType: String = "Fighter") 
         
         // Vẽ medusas
         for (medusa in medusas) {
-            medusa.draw(canvas, cameraX, cameraY)
+            medusa.draw(canvas)
+        }
+        
+        // Vẽ jinns
+        for (jinn in jinns) {
+            jinn.draw(canvas)
+        }
+
+        // Vẽ small dragons
+        for (smallDragon in smallDragons) {
+            smallDragon.draw(canvas)
+        }
+        
+        // Vẽ dragons (phun lửa cận chiến)
+        for (dragon in dragons) {
+            dragon.draw(canvas)
         }
         
         // Vẽ nhân vật
@@ -744,6 +1036,18 @@ class GameView(context: Context, private val characterType: String = "Fighter") 
         // Xóa tất cả medusas cũ và spawn lại
         medusas.clear()
         spawnMedusas()
+        
+        // Xóa tất cả jinns cũ và spawn lại
+        jinns.clear()
+        spawnJinns()
+
+        // Xóa tất cả small dragons cũ và spawn lại
+        smallDragons.clear()
+        spawnSmallDragons()
+        
+        // Xóa tất cả dragons cũ và spawn lại
+        dragons.clear()
+        spawnDragons()
         
         // Reset thời gian
         gameStartTime = System.currentTimeMillis()
