@@ -25,7 +25,7 @@
         <!-- Map Selection Activity (MỚI - ĐÃ THÊM) -->
         <!-- ============================================ -->
         <activity
-            android:name=".MapSelectionActivity"
+            android:name=".maps.MapSelectionActivity"
             android:screenOrientation="landscape"
             android:exported="false" />
 
@@ -43,7 +43,7 @@
 
         <!-- Victory History Activity -->
         <activity
-            android:name=".VictoryHistoryActivity"
+            android:name=".victory.VictoryHistoryActivity"
             android:screenOrientation="landscape"
             android:exported="false" />
 

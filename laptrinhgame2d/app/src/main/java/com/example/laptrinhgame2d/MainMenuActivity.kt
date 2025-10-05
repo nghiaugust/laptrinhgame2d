@@ -8,6 +8,7 @@ import android.view.View
 import android.view.WindowManager
 import android.widget.Button
 import androidx.appcompat.app.AppCompatActivity
+import com.example.laptrinhgame2d.maps.MapSelectionActivity
 
 class MainMenuActivity : AppCompatActivity() {
 

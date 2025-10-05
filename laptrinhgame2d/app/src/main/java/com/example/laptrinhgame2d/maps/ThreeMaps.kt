@@ -1,9 +1,13 @@
-package com.example.laptrinhgame2d
+package com.example.laptrinhgame2d.maps
 
 import android.content.Context
 import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.Paint
+import com.example.laptrinhgame2d.maps.BackgroundGenerator
+import com.example.laptrinhgame2d.maps.BackgroundLayer
+import com.example.laptrinhgame2d.maps.Ground
+import kotlin.math.sin
 import kotlin.random.Random
 
 /**
@@ -247,7 +251,7 @@ class DesertMap(context: Context, screenWidth: Int, screenHeight: Int) {
         val windOffset = (System.currentTimeMillis() / 50 % 400).toFloat()
         for (i in 0..8) {
             val x = (i * 300f + windOffset) - (cameraX * 0.4f)
-            val y = groundY - 120f - cameraY + (kotlin.math.sin((System.currentTimeMillis() / 1000f + i) * 2f) * 10f)
+            val y = groundY - 120f - cameraY + (sin((System.currentTimeMillis() / 1000f + i) * 2f) * 10f)
 
             if (x > -100 && x < canvas.width + 100) {
                 canvas.drawCircle(x, y, 6f, sandPaint)
@@ -396,7 +400,7 @@ class VolcanoMap(context: Context, screenWidth: Int, screenHeight: Int) {
         // Hiệu ứng sóng dung nham
         for (i in 0..10) {
             val x = i * 100f - (cameraX * 1.1f)
-            val waveY = lavaY + kotlin.math.sin((System.currentTimeMillis() / 300f + i) * 2f) * 8f
+            val waveY = lavaY + sin((System.currentTimeMillis() / 300f + i) * 2f) * 8f
             canvas.drawOval(x - 25f, waveY - 10f, x + 25f, waveY + 10f, lavaGlowPaint)
         }
 
@@ -411,7 +415,7 @@ class VolcanoMap(context: Context, screenWidth: Int, screenHeight: Int) {
                 canvas.drawCircle(x + 8f, y + 3f, 20f, volcanicRockPaint)
 
                 if (i % 4 == 0) {
-                    val emberY = y - 35f + kotlin.math.sin((System.currentTimeMillis() / 200f + i) * 3f) * 5f
+                    val emberY = y - 35f + sin((System.currentTimeMillis() / 200f + i) * 3f) * 5f
                     canvas.drawCircle(x, emberY, 3f, emberPaint)
                 }
             }
@@ -454,7 +458,7 @@ class VolcanoMap(context: Context, screenWidth: Int, screenHeight: Int) {
         val emberOffset = (System.currentTimeMillis() / 100 % 300).toFloat()
         for (i in 0..5) {
             val x = (i * 400f + emberOffset) - (cameraX * 0.6f)
-            val y = groundY - 200f - cameraY + kotlin.math.sin((System.currentTimeMillis() / 400f + i) * 2f) * 20f
+            val y = groundY - 200f - cameraY + sin((System.currentTimeMillis() / 400f + i) * 2f) * 20f
 
             if (x > -100 && x < canvas.width + 100) {
                 canvas.drawCircle(x, y, 4f, emberPaint)

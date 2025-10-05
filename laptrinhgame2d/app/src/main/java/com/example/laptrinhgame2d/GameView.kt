@@ -7,6 +7,22 @@ import android.graphics.Color
 import android.view.MotionEvent
 import android.view.SurfaceHolder
 import android.view.SurfaceView
+import com.example.laptrinhgame2d.enemies.Demon
+import com.example.laptrinhgame2d.enemies.Dragon
+import com.example.laptrinhgame2d.enemies.Jinn
+import com.example.laptrinhgame2d.enemies.Medusa
+import com.example.laptrinhgame2d.enemies.Skeleton
+import com.example.laptrinhgame2d.enemies.SmallDragon
+import com.example.laptrinhgame2d.heroes.Fighter
+import com.example.laptrinhgame2d.heroes.SamuraiArcher
+import com.example.laptrinhgame2d.heroes.SamuraiCommander
+import com.example.laptrinhgame2d.maps.DesertMap
+import com.example.laptrinhgame2d.maps.GrasslandMap
+import com.example.laptrinhgame2d.maps.VolcanoMap
+import com.example.laptrinhgame2d.victory.VictoryDialog
+import com.example.laptrinhgame2d.victory.VictoryHistoryActivity
+import com.example.laptrinhgame2d.victory.VictoryManager
+import com.example.laptrinhgame2d.victory.VictoryRecord
 
 class GameView(
     context: Context, 
