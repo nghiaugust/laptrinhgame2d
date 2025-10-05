@@ -8,6 +8,7 @@ import androidx.appcompat.app.AppCompatActivity
 class MainActivity : AppCompatActivity() {
 
     private lateinit var gameView: GameView
+    //private lateinit var gameView: GameView_v2
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -30,6 +31,7 @@ class MainActivity : AppCompatActivity() {
 
         // Tạo và set GameView với loại nhân vật và map type
         gameView = GameView(this, characterType, mapType)
+        //gameView = GameView_v2(this, characterType, mapType)
         setContentView(gameView)
     }
 }
