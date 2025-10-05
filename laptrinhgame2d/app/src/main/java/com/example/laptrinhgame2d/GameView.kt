@@ -8,7 +8,11 @@ import android.view.MotionEvent
 import android.view.SurfaceHolder
 import android.view.SurfaceView
 
-class GameView(context: Context, private val characterType: String = "Fighter") : SurfaceView(context), SurfaceHolder.Callback {
+class GameView(
+    context: Context, 
+    private val characterType: String = "Fighter", 
+    private val mapType: Int = 1  // ===== THÊM: Nhận map type =====
+) : SurfaceView(context), SurfaceHolder.Callback {
     
     // ==================== ENEMY SPAWN CONFIGURATION ====================
     // Điều chỉnh số lượng quái ở đây
@@ -382,7 +386,8 @@ class GameView(context: Context, private val characterType: String = "Fighter") 
         dragons.forEach { dragon ->
             dragon.y = groundY - 200f
         }
-
+        
+        // Lấy vị trí và trạng thái của nhân vật đang chơi
         val playerX = fighter?.getX() ?: samuraiArcher?.getX() ?: samuraiCommander?.getX() ?: 0f
         val playerY = fighter?.y ?: samuraiArcher?.y ?: samuraiCommander?.y ?: 0f
         val playerIsDead = fighter?.isDead() ?: samuraiArcher?.isDead() ?: samuraiCommander?.isDead() ?: false
@@ -670,7 +675,8 @@ class GameView(context: Context, private val characterType: String = "Fighter") 
                 }
             }
         }
-
+        
+        // Kiểm tra arrows của Samurai_Archer hit skeletons
         samuraiArcher?.getArrows()?.forEach { arrow ->
             for (skeleton in skeletons) {
                 if (!skeleton.isDead() && arrow.isActive()) {
@@ -735,7 +741,8 @@ class GameView(context: Context, private val characterType: String = "Fighter") 
                 }
             }
         }
-
+        
+        // Kiểm tra skill projectiles của Samurai_Archer hit skeletons
         samuraiArcher?.getSkillProjectiles()?.forEach { skillProj ->
             for (skeleton in skeletons) {
                 if (!skeleton.isDead() && skillProj.isActive()) {
@@ -841,7 +848,8 @@ class GameView(context: Context, private val characterType: String = "Fighter") 
         for (dragon in dragons) {
             dragon.draw(canvas)
         }
-
+        
+        // Vẽ nhân vật
         fighter?.draw(canvas)
         samuraiArcher?.draw(canvas)
         samuraiCommander?.draw(canvas)
