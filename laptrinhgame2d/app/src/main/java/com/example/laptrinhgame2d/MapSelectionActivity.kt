@@ -1,19 +1,42 @@
 package com.example.laptrinhgame2d
 
 import android.content.Intent
-import android.graphics.BitmapFactory
-import android.graphics.drawable.BitmapDrawable
 import android.os.Bundle
 import android.view.View
 import android.view.WindowManager
-import android.widget.Button
-import android.widget.ImageView
-import android.widget.TextView
+import android.widget.*
 import androidx.appcompat.app.AppCompatActivity
 
 class MapSelectionActivity : AppCompatActivity() {
 
-    private var selectedMap = 1 // 1, 2, hoặc 3
+    private lateinit var mapName: TextView
+    private lateinit var mapImage: ImageView
+    private lateinit var mapDifficulty: TextView
+    private lateinit var mapDescription: TextView
+
+    private var currentMapIndex = 0
+
+    // Danh sách thông tin maps
+    private val maps = listOf(
+        MapInfo(
+            id = 1,
+            name = "GRASSLAND",
+            difficulty = "Easy ⭐",
+            description = "A peaceful meadow with green hills and clear skies. Perfect for beginners!"
+        ),
+        MapInfo(
+            id = 2,
+            name = "DESERT",
+            difficulty = "Medium ⭐⭐",
+            description = "A harsh desert environment with scorching heat and dangerous cacti. For experienced warriors!"
+        ),
+        MapInfo(
+            id = 3,
+            name = "VOLCANO",
+            difficulty = "Hard ⭐⭐⭐",
+            description = "A dangerous volcanic region with flowing lava and deadly rocks. Only for the bravest heroes!"
+        )
+    )
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -22,130 +45,75 @@ class MapSelectionActivity : AppCompatActivity() {
         // Ẩn action bar
         supportActionBar?.hide()
 
-        // Toàn màn hình
+        // Fullscreen
         window.decorView.systemUiVisibility = (
                 View.SYSTEM_UI_FLAG_FULLSCREEN or
                         View.SYSTEM_UI_FLAG_HIDE_NAVIGATION or
                         View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY
                 )
 
+        // Giữ màn hình sáng
         window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
 
-        // Load background
-        try {
-            val layout = findViewById<View>(R.id.mapSelectionLayout)
-            val inputStream = assets.open("common/background.jpg")
-            val bitmap = BitmapFactory.decodeStream(inputStream)
-            val drawable = BitmapDrawable(resources, bitmap)
-            layout.background = drawable
-            inputStream.close()
-        } catch (e: Exception) {
-            e.printStackTrace()
-            findViewById<View>(R.id.mapSelectionLayout).setBackgroundColor(
-                android.graphics.Color.BLACK
-            )
-        }
+        initViews()
+        updateMapDisplay()
+        setupButtons()
+    }
 
-        val mapImage = findViewById<ImageView>(R.id.mapImage)
-        val mapName = findViewById<TextView>(R.id.mapName)
-        val mapDifficulty = findViewById<TextView>(R.id.mapDifficulty)
-        val mapDescription = findViewById<TextView>(R.id.mapDescription)
-        val selectButton = findViewById<Button>(R.id.selectMapButton)
-        val prevButton = findViewById<Button>(R.id.prevMapButton)
-        val nextButton = findViewById<Button>(R.id.nextMapButton)
-        val backButton = findViewById<Button>(R.id.backButton)
+    private fun initViews() {
+        mapName = findViewById(R.id.mapName)
+        mapImage = findViewById(R.id.mapImage)
+        mapDifficulty = findViewById(R.id.mapDifficulty)
+        mapDescription = findViewById(R.id.mapDescription)
+    }
 
-        // Hiển thị Map 1 mặc định
-        updateMapDisplay(mapImage, mapName, mapDifficulty, mapDescription)
+    private fun updateMapDisplay() {
+        val map = maps[currentMapIndex]
 
-        // Nút Previous
-        prevButton.setOnClickListener {
-            selectedMap = when (selectedMap) {
-                1 -> 3
-                2 -> 1
-                3 -> 2
-                else -> 1
-            }
-            updateMapDisplay(mapImage, mapName, mapDifficulty, mapDescription)
-        }
+        mapName.text = map.name
+        mapDifficulty.text = "Difficulty: ${map.difficulty}"
+        mapDescription.text = map.description
 
-        // Nút Next
-        nextButton.setOnClickListener {
-            selectedMap = when (selectedMap) {
-                1 -> 2
-                2 -> 3
-                3 -> 1
-                else -> 1
-            }
-            updateMapDisplay(mapImage, mapName, mapDifficulty, mapDescription)
-        }
-
-        // Nút Select - chuyển sang màn hình chọn nhân vật (CODE CŨ)
-        selectButton.setOnClickListener {
-            val intent = Intent(this, CharacterSelectionActivity::class.java)
-            intent.putExtra("SELECTED_MAP", selectedMap) // Truyền map đã chọn
-            startActivity(intent)
-        }
-
-        // Nút Back - quay về main menu
-        backButton.setOnClickListener {
-            finish()
+        // Set màu preview cho map image
+        when (map.id) {
+            1 -> mapImage.setBackgroundColor(android.graphics.Color.rgb(34, 139, 34)) // Green
+            2 -> mapImage.setBackgroundColor(android.graphics.Color.rgb(238, 203, 173)) // Sand
+            3 -> mapImage.setBackgroundColor(android.graphics.Color.rgb(139, 69, 19)) // Brown/Red
         }
     }
 
-    private fun updateMapDisplay(
-        imageView: ImageView,
-        nameView: TextView,
-        difficultyView: TextView,
-        descriptionView: TextView
-    ) {
-        when (selectedMap) {
-            1 -> {
-                nameView.text = "GRASSLAND"
-                difficultyView.text = "Difficulty: Easy ⭐"
-                difficultyView.setTextColor(android.graphics.Color.GREEN)
-                descriptionView.text = "A peaceful meadow with green hills and clear skies. Perfect for beginners!"
-
-                // Dùng ảnh có sẵn để preview
-                try {
-                    val inputStream = assets.open("backgrounds/hills.png")
-                    val bitmap = BitmapFactory.decodeStream(inputStream)
-                    imageView.setImageBitmap(bitmap)
-                    inputStream.close()
-                } catch (e: Exception) {
-                    imageView.setBackgroundColor(android.graphics.Color.rgb(100, 200, 100))
-                }
+    private fun setupButtons() {
+        // Previous map button
+        findViewById<Button>(R.id.prevMapButton).setOnClickListener {
+            currentMapIndex = if (currentMapIndex > 0) {
+                currentMapIndex - 1
+            } else {
+                maps.size - 1
             }
-            2 -> {
-                nameView.text = "DESERT"
-                difficultyView.text = "Difficulty: Medium ⭐⭐"
-                difficultyView.setTextColor(android.graphics.Color.YELLOW)
-                descriptionView.text = "A harsh desert with scorching heat. More enemies!"
+            updateMapDisplay()
+        }
 
-                try {
-                    val inputStream = assets.open("backgrounds/mountains.png")
-                    val bitmap = BitmapFactory.decodeStream(inputStream)
-                    imageView.setImageBitmap(bitmap)
-                    inputStream.close()
-                } catch (e: Exception) {
-                    imageView.setBackgroundColor(android.graphics.Color.rgb(255, 220, 150))
-                }
+        // Next map button
+        findViewById<Button>(R.id.nextMapButton).setOnClickListener {
+            currentMapIndex = if (currentMapIndex < maps.size - 1) {
+                currentMapIndex + 1
+            } else {
+                0
             }
-            3 -> {
-                nameView.text = "VOLCANO"
-                difficultyView.text = "Difficulty: Hard ⭐⭐⭐"
-                difficultyView.setTextColor(android.graphics.Color.RED)
-                descriptionView.text = "A treacherous volcano. Most enemies! Only for brave warriors!"
+            updateMapDisplay()
+        }
 
-                try {
-                    val inputStream = assets.open("backgrounds/sky.png")
-                    val bitmap = BitmapFactory.decodeStream(inputStream)
-                    imageView.setImageBitmap(bitmap)
-                    inputStream.close()
-                } catch (e: Exception) {
-                    imageView.setBackgroundColor(android.graphics.Color.rgb(180, 60, 20))
-                }
-            }
+        // Select map button - chuyển sang character selection
+        findViewById<Button>(R.id.selectMapButton).setOnClickListener {
+            val selectedMapId = maps[currentMapIndex].id
+            val intent = Intent(this, CharacterSelectionActivity::class.java)
+            intent.putExtra("MAP_TYPE", selectedMapId)
+            startActivity(intent)
+        }
+
+        // Back button
+        findViewById<Button>(R.id.backButton).setOnClickListener {
+            finish()
         }
     }
 
@@ -159,4 +127,12 @@ class MapSelectionActivity : AppCompatActivity() {
                     )
         }
     }
+
+    // Data class để lưu thông tin map
+    data class MapInfo(
+        val id: Int,
+        val name: String,
+        val difficulty: String,
+        val description: String
+    )
 }
