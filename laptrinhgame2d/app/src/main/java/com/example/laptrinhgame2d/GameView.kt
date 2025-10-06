@@ -78,6 +78,14 @@ class GameView(
     private var gameStartTime: Long = 0
     private var victoryManager: VictoryManager
 
+    // ===== WAVE SYSTEM =====
+    private var currentWaveNumber: Int = 0
+    private var lastWaveClearedTime: Long = 0 // Thời điểm wave trước bị clear
+    private var isWaitingForNextWave: Boolean = false // Đang chờ spawn wave tiếp theo
+    private var wavesCompleted: Int = 0
+    private var spawnConfig: SpawnConfig.LevelSpawnConfig? = null
+    private var currentWaveEnemyCount: Int = 0 // Số quái của wave hiện tại
+
     // Lấy tổng số quái từ LevelConfig thay vì hardcode
     private val totalEnemies: Int
         get() = levelConfig.totalEnemies
@@ -88,6 +96,13 @@ class GameView(
         // Khởi tạo Level Management
         currentLevel = levelManager.getLevelFromMapType(mapType)
         levelConfig = levelManager.getLevelConfig(currentLevel)
+        
+        // Khởi tạo Spawn Config
+        spawnConfig = SpawnConfig.getSpawnConfig(currentLevel)
+        currentWaveNumber = 1
+        lastWaveClearedTime = 0
+        isWaitingForNextWave = false
+        currentWaveEnemyCount = 0
 
         victoryManager = VictoryManager(context)
 
@@ -105,51 +120,176 @@ class GameView(
             "Samurai_Commander" -> samuraiCommander = SamuraiCommander(context, 500f, 400f)
         }
 
-        // Spawn enemies theo LevelConfig thay vì hardcode
-        spawnEnemiesByLevel()
+        // KHÔNG spawn enemies ở đây nữa, spawn theo wave trong update()
+        // spawnEnemiesByLevel() <- XÓA DÒNG NÀY
     }
 
-    // ===== ENEMY SPAWNING THEO LEVEL CONFIG =====
+    // ===== WAVE SPAWN SYSTEM - SPAWN KHI WAVE TRƯỚC CHẾT HẾT =====
+    private fun spawnWave(waveConfig: SpawnConfig.WaveConfig) {
+        var spawnIndex = 0
+        var enemiesSpawned = 0
+        
+        // Spawn từng loại quái theo config của wave
+        val enemyTypes = waveConfig.enemies.entries.toList()
+        
+        for ((enemyType, count) in enemyTypes) {
+            for (i in 0 until count) {
+                val (x, y) = SpawnConfig.calculateSpawnPosition(
+                    waveConfig,
+                    spawnIndex,
+                    waveConfig.totalEnemies
+                )
+                spawnIndex++
+                
+                when (enemyType) {
+                    SpawnConfig.EnemyType.SKELETON -> {
+                        skeletons.add(Skeleton(gameContext, x, y))
+                        enemiesSpawned++
+                    }
+                    SpawnConfig.EnemyType.DEMON -> {
+                        demons.add(Demon(gameContext, x, y))
+                        enemiesSpawned++
+                    }
+                    SpawnConfig.EnemyType.MEDUSA -> {
+                        medusas.add(Medusa(gameContext, x, y))
+                        enemiesSpawned++
+                    }
+                    SpawnConfig.EnemyType.JINN -> {
+                        jinns.add(Jinn(gameContext, x, y))
+                        enemiesSpawned++
+                    }
+                    SpawnConfig.EnemyType.SMALL_DRAGON -> {
+                        smallDragons.add(SmallDragon(gameContext, x, y))
+                        enemiesSpawned++
+                    }
+                    SpawnConfig.EnemyType.DRAGON -> {
+                        dragons.add(Dragon(gameContext, x, y))
+                        enemiesSpawned++
+                    }
+                }
+            }
+        }
+        
+        currentWaveEnemyCount = enemiesSpawned
+        wavesCompleted++
+    }
+
+    // ===== KIỂM TRA VÀ SPAWN WAVE TIẾP THEO - DỰA TRÊN WAVE TRƯỚC CHẾT HẾT =====
+    private fun checkAndSpawnNextWave() {
+        spawnConfig?.let { config ->
+            // Nếu chưa spawn wave đầu tiên
+            if (currentWaveNumber == 1 && currentWaveEnemyCount == 0) {
+                val firstWave = config.waves.find { it.waveNumber == 1 }
+                firstWave?.let { wave ->
+                    spawnWave(wave)
+                    currentWaveNumber = 2 // Chuẩn bị cho wave tiếp theo
+                }
+                return
+            }
+            
+            // Kiểm tra wave hiện tại đã chết hết chưa
+            // Đếm cả quái sống và quái đã chết (chưa bị remove)
+            val currentAliveEnemies = skeletons.count { !it.isDead() } +
+                                     demons.count { !it.isDead() } +
+                                     medusas.count { !it.isDead() } +
+                                     jinns.count { !it.isDead() } +
+                                     smallDragons.count { !it.isDead() } +
+                                     dragons.count { !it.isDead() }
+            
+            val totalEnemiesInLists = skeletons.size + demons.size + medusas.size + 
+                                      jinns.size + smallDragons.size + dragons.size
+            
+            // Debug log (có thể bỏ sau)
+            // android.util.Log.d("WaveSystem", "Wave: $currentWaveNumber, Alive: $currentAliveEnemies, Total: $totalEnemiesInLists, WaveCount: $currentWaveEnemyCount")
+            
+            // Nếu wave hiện tại đã chết hết (không còn quái sống) và còn wave tiếp theo
+            if (currentAliveEnemies == 0 && currentWaveEnemyCount > 0 && currentWaveNumber <= config.totalWaves) {
+                if (!isWaitingForNextWave) {
+                    // Bắt đầu đợi để spawn wave tiếp theo
+                    lastWaveClearedTime = System.currentTimeMillis()
+                    isWaitingForNextWave = true
+                } else {
+                    // Đang chờ - kiểm tra đã đủ delay chưa
+                    val nextWave = config.waves.find { it.waveNumber == currentWaveNumber }
+                    nextWave?.let { wave ->
+                        val currentTime = System.currentTimeMillis()
+                        val elapsedSeconds = (currentTime - lastWaveClearedTime) / 1000f
+                        
+                        if (elapsedSeconds >= wave.delaySeconds) {
+                            // Đã đủ delay, spawn wave mới
+                            spawnWave(wave)
+                            currentWaveNumber++
+                            isWaitingForNextWave = false
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    // ===== LEGACY METHOD - KHÔNG DÙNG NỮA =====
+    @Deprecated("Sử dụng Wave System thay vì spawn tất cả cùng lúc")
     private fun spawnEnemiesByLevel() {
-        // Spawn Skeletons
+        // Lấy spawn config cho level hiện tại
+        val spawnConfig = SpawnConfig.getSpawnConfig(currentLevel)
+
+        // Spawn Skeletons theo config
         for (i in 0 until levelConfig.skeletons) {
-            val x = 800f + (i * 400f) + (Math.random() * 200f).toFloat()
-            val y = 400f + (Math.random() * 400f).toFloat()
+            val (x, y) = SpawnConfig.calculateSpawnPosition(
+                spawnConfig.waves.firstOrNull() ?: return,
+                i,
+                levelConfig.skeletons
+            )
             skeletons.add(Skeleton(gameContext, x, y))
         }
 
-        // Spawn Demons
+        // Spawn Demons theo config
         for (i in 0 until levelConfig.demons) {
-            val x = 900f + (i * 400f) + (Math.random() * 300f).toFloat()
-            val y = 400f + (Math.random() * 400f).toFloat()
+            val (x, y) = SpawnConfig.calculateSpawnPosition(
+                spawnConfig.waves.firstOrNull() ?: return,
+                i,
+                levelConfig.demons
+            )
             demons.add(Demon(gameContext, x, y))
         }
 
-        // Spawn Medusas (chỉ từ Desert trở lên)
+        // Spawn Medusas theo config (chỉ từ Desert trở lên)
         for (i in 0 until levelConfig.medusas) {
-            val x = 1000f + (i * 400f) + (Math.random() * 300f).toFloat()
-            val y = 400f + (Math.random() * 400f).toFloat()
+            val (x, y) = SpawnConfig.calculateSpawnPosition(
+                spawnConfig.waves.firstOrNull() ?: return,
+                i,
+                levelConfig.medusas
+            )
             medusas.add(Medusa(gameContext, x, y))
         }
 
-        // Spawn Jinns (chỉ ở Volcano)
+        // Spawn Jinns theo config (chỉ ở Volcano)
         for (i in 0 until levelConfig.jinns) {
-            val x = 1100f + (i * 400f) + (Math.random() * 400f).toFloat()
-            val y = 400f + (Math.random() * 400f).toFloat()
+            val (x, y) = SpawnConfig.calculateSpawnPosition(
+                spawnConfig.waves.firstOrNull() ?: return,
+                i,
+                levelConfig.jinns
+            )
             jinns.add(Jinn(gameContext, x, y))
         }
 
-        // Spawn SmallDragons (nếu cần mở rộng trong tương lai)
+        // Spawn SmallDragons theo config (nếu cần mở rộng trong tương lai)
         for (i in 0 until levelConfig.smallDragons) {
-            val x = 1200f + (i * 400f) + (Math.random() * 300f).toFloat()
-            val y = 400f + (Math.random() * 400f).toFloat()
+            val (x, y) = SpawnConfig.calculateSpawnPosition(
+                spawnConfig.waves.firstOrNull() ?: return,
+                i,
+                levelConfig.smallDragons
+            )
             smallDragons.add(SmallDragon(gameContext, x, y))
         }
 
-        // Spawn Dragons (nếu cần mở rộng trong tương lai)
+        // Spawn Dragons theo config (nếu cần mở rộng trong tương lai)
         for (i in 0 until levelConfig.dragons) {
-            val x = 1300f + (i * 500f) + (Math.random() * 200f).toFloat()
-            val y = 400f + (Math.random() * 400f).toFloat()
+            val (x, y) = SpawnConfig.calculateSpawnPosition(
+                spawnConfig.waves.firstOrNull() ?: return,
+                i,
+                levelConfig.dragons
+            )
             dragons.add(Dragon(gameContext, x, y))
         }
     }
@@ -338,6 +478,9 @@ class GameView(
     fun update() {
         if (isGameOver || isPaused || isVictory) return
 
+        // ===== WAVE SPAWN SYSTEM =====
+        checkAndSpawnNextWave()
+
         // Update map theo loại
         when (mapType) {
             1 -> grasslandMap?.update(cameraX, cameraY)
@@ -407,6 +550,10 @@ class GameView(
 
         cameraY = 0f
 
+        // ===== KIỂM TRA VÀ SPAWN WAVE TIẾP THEO (TRƯỚC KHI REMOVE) =====
+        checkAndSpawnNextWave()
+
+        // Sau đó mới remove enemies
         skeletons.removeAll { it.shouldBeRemoved() }
         demons.removeAll { it.shouldBeRemoved() }
         medusas.removeAll { it.shouldRemove() }
@@ -414,18 +561,27 @@ class GameView(
         smallDragons.removeAll { it.shouldBeRemoved() }
         dragons.removeAll { it.shouldBeRemoved() }
 
-        // ===== KIỂM TRA CHIẾN THẮNG VỚI LEVEL SYSTEM =====
+        // ===== KIỂM TRA CHIẾN THẮNG VỚI WAVE SYSTEM =====
         if (!isVictory) {
-            val allSkeletonsDead = skeletons.all { it.isDead() }
-            val allDemonsDead = demons.all { it.isDead() }
-            val allMedusasDead = medusas.isEmpty() || medusas.all { it.isDead() }
-            val allJinnsDead = jinns.isEmpty() || jinns.all { it.isDead() }
-            val allSmallDragonsDead = smallDragons.isEmpty() || smallDragons.all { it.isDead() }
-            val allDragonsDead = dragons.isEmpty() || dragons.all { it.isDead() }
+            // Chỉ check victory khi đã spawn HẾT tất cả wave
+            val allWavesSpawned = spawnConfig?.let { config ->
+                currentWaveNumber > config.totalWaves
+            } ?: false
+            
+            if (allWavesSpawned) {
+                // Kiểm tra tất cả quái đã chết hết chưa
+                val allEnemiesDead = 
+                    skeletons.all { it.isDead() } &&
+                    demons.all { it.isDead() } &&
+                    (medusas.isEmpty() || medusas.all { it.isDead() }) &&
+                    (jinns.isEmpty() || jinns.all { it.isDead() }) &&
+                    (smallDragons.isEmpty() || smallDragons.all { it.isDead() }) &&
+                    (dragons.isEmpty() || dragons.all { it.isDead() })
 
-            if (allSkeletonsDead && allDemonsDead && allMedusasDead && allJinnsDead && allSmallDragonsDead && allDragonsDead) {
-                isVictory = true
-                showVictory()
+                if (allEnemiesDead) {
+                    isVictory = true
+                    showVictory()
+                }
             }
         }
 
@@ -886,7 +1042,7 @@ class GameView(
         }
     }
 
-    // ===== RESET GAME VỚI LEVEL SYSTEM =====
+    // ===== RESET GAME VỚI WAVE SYSTEM =====
     private fun resetGame() {
         isGameOver = false
         isVictory = false
@@ -903,8 +1059,12 @@ class GameView(
         smallDragons.clear()
         dragons.clear()
 
-        // Spawn lại theo LevelConfig hiện tại
-        spawnEnemiesByLevel()
+        // Reset wave system
+        currentWaveNumber = 1
+        wavesCompleted = 0
+        lastWaveClearedTime = 0
+        isWaitingForNextWave = false
+        currentWaveEnemyCount = 0
 
         gameStartTime = System.currentTimeMillis()
     }
