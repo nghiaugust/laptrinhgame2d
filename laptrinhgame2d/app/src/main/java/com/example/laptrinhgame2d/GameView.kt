@@ -31,14 +31,31 @@ class GameView(
 ) : SurfaceView(context), SurfaceHolder.Callback {
     
     // ==================== ENEMY SPAWN CONFIGURATION ====================
-    // Điều chỉnh số lượng quái ở đây
+    // Cấu hình số lượng quái cho TỪNG MÀN CHƠI
     companion object {
-        const val NUM_SKELETONS = 3      // Số lượng Skeleton
-        const val NUM_DEMONS = 3         // Số lượng Demon
-        const val NUM_MEDUSAS = 3        // Số lượng Medusa (tấn công tầm xa bằng đá)
-        const val NUM_JINNS = 3          // Số lượng Jinn (quái mới)
-        const val NUM_SMALL_DRAGONS = 3  // Số lượng Small Dragon
-        const val NUM_DRAGONS = 3        // Số lượng Dragon (phun lửa cận chiến)
+        // MAP 1: GRASSLAND (Dễ) - Ít quái, cân bằng
+        const val MAP1_SKELETONS = 2
+        const val MAP1_DEMONS = 2
+        const val MAP1_MEDUSAS = 2
+        const val MAP1_JINNS = 1
+        const val MAP1_SMALL_DRAGONS = 1
+        const val MAP1_DRAGONS = 1
+        
+        // MAP 2: DESERT (Trung bình) - Tăng số lượng
+        const val MAP2_SKELETONS = 3
+        const val MAP2_DEMONS = 3
+        const val MAP2_MEDUSAS = 3
+        const val MAP2_JINNS = 2
+        const val MAP2_SMALL_DRAGONS = 2
+        const val MAP2_DRAGONS = 2
+        
+        // MAP 3: VOLCANO (Khó) - Nhiều quái nhất
+        const val MAP3_SKELETONS = 4
+        const val MAP3_DEMONS = 4
+        const val MAP3_MEDUSAS = 4
+        const val MAP3_JINNS = 3
+        const val MAP3_SMALL_DRAGONS = 3
+        const val MAP3_DRAGONS = 3
     }
     // ===================================================================
     
@@ -85,7 +102,15 @@ class GameView(
     private var gameStartTime: Long = 0
     private var victoryManager: VictoryManager
     private val totalEnemies: Int
-        get() = NUM_SKELETONS + NUM_DEMONS + NUM_MEDUSAS + NUM_JINNS + NUM_SMALL_DRAGONS + NUM_DRAGONS
+        get() {
+            // Tính tổng số quái theo map hiện tại
+            return when (mapType) {
+                1 -> MAP1_SKELETONS + MAP1_DEMONS + MAP1_MEDUSAS + MAP1_JINNS + MAP1_SMALL_DRAGONS + MAP1_DRAGONS
+                2 -> MAP2_SKELETONS + MAP2_DEMONS + MAP2_MEDUSAS + MAP2_JINNS + MAP2_SMALL_DRAGONS + MAP2_DRAGONS
+                3 -> MAP3_SKELETONS + MAP3_DEMONS + MAP3_MEDUSAS + MAP3_JINNS + MAP3_SMALL_DRAGONS + MAP3_DRAGONS
+                else -> MAP1_SKELETONS + MAP1_DEMONS + MAP1_MEDUSAS + MAP1_JINNS + MAP1_SMALL_DRAGONS + MAP1_DRAGONS
+            }
+        }
     
     init {
         holder.addCallback(this)
@@ -115,8 +140,16 @@ class GameView(
     }
 
     private fun spawnSkeletons() {
+        // Lấy số lượng skeleton theo map hiện tại
+        val numSkeletons = when (mapType) {
+            1 -> MAP1_SKELETONS
+            2 -> MAP2_SKELETONS
+            3 -> MAP3_SKELETONS
+            else -> MAP1_SKELETONS
+        }
+        
         // Spawn skeletons
-        for (i in 0 until NUM_SKELETONS) {
+        for (i in 0 until numSkeletons) {
             val x = 800f + (i * 400f) + (Math.random() * 200f).toFloat() // Cách đều khoảng 400px, random thêm 0-200px
             val y = 400f + (Math.random() * 400f).toFloat() // Random Y từ 400-800
             skeletons.add(Skeleton(gameContext, x, y))
@@ -124,8 +157,16 @@ class GameView(
     }
 
     private fun spawnDemons() {
+        // Lấy số lượng demon theo map hiện tại
+        val numDemons = when (mapType) {
+            1 -> MAP1_DEMONS
+            2 -> MAP2_DEMONS
+            3 -> MAP3_DEMONS
+            else -> MAP1_DEMONS
+        }
+        
         // Spawn demons
-        for (i in 0 until NUM_DEMONS) {
+        for (i in 0 until numDemons) {
             val x = 900f + (i * 400f) + (Math.random() * 300f).toFloat() // Cách đều khoảng 600px
             val y = 400f + (Math.random() * 400f).toFloat() // Random Y từ 400-800
             demons.add(Demon(gameContext, x, y))
@@ -133,8 +174,16 @@ class GameView(
     }
 
     private fun spawnMedusas() {
+        // Lấy số lượng medusa theo map hiện tại
+        val numMedusas = when (mapType) {
+            1 -> MAP1_MEDUSAS
+            2 -> MAP2_MEDUSAS
+            3 -> MAP3_MEDUSAS
+            else -> MAP1_MEDUSAS
+        }
+        
         // Spawn medusas
-        for (i in 0 until NUM_MEDUSAS) {
+        for (i in 0 until numMedusas) {
             val x = 1000f + (i * 400f) + (Math.random() * 300f).toFloat() // Cách đều khoảng 700px
             val y = 400f + (Math.random() * 400f).toFloat() // Random Y từ 400-800
             medusas.add(Medusa(gameContext, x, y))
@@ -142,8 +191,16 @@ class GameView(
     }
     
     private fun spawnJinns() {
+        // Lấy số lượng jinn theo map hiện tại
+        val numJinns = when (mapType) {
+            1 -> MAP1_JINNS
+            2 -> MAP2_JINNS
+            3 -> MAP3_JINNS
+            else -> MAP1_JINNS
+        }
+        
         // Spawn jinns
-        for (i in 0 until NUM_JINNS) {
+        for (i in 0 until numJinns) {
             val x = 1100f + (i * 400f) + (Math.random() * 400f).toFloat() // Cách đều khoảng 800px
             val y = 400f + (Math.random() * 400f).toFloat() // Random Y từ 400-800
             jinns.add(Jinn(gameContext, x, y))
@@ -151,8 +208,16 @@ class GameView(
     }
     
     private fun spawnSmallDragons() {
+        // Lấy số lượng small dragon theo map hiện tại
+        val numSmallDragons = when (mapType) {
+            1 -> MAP1_SMALL_DRAGONS
+            2 -> MAP2_SMALL_DRAGONS
+            3 -> MAP3_SMALL_DRAGONS
+            else -> MAP1_SMALL_DRAGONS
+        }
+        
         // Spawn small dragons (rồng nhỏ - tầm xa)
-        for (i in 0 until NUM_SMALL_DRAGONS) {
+        for (i in 0 until numSmallDragons) {
             val x = 1200f + (i * 400f) + (Math.random() * 300f).toFloat() // Cách đều khoảng 600px, spawn xa
             val y = 400f + (Math.random() * 400f).toFloat() // Random Y từ 400-800
             smallDragons.add(SmallDragon(gameContext, x, y))
@@ -160,8 +225,16 @@ class GameView(
     }
     
     private fun spawnDragons() {
+        // Lấy số lượng dragon theo map hiện tại
+        val numDragons = when (mapType) {
+            1 -> MAP1_DRAGONS
+            2 -> MAP2_DRAGONS
+            3 -> MAP3_DRAGONS
+            else -> MAP1_DRAGONS
+        }
+        
         // Spawn dragons (rồng lớn - phun lửa cận chiến)
-        for (i in 0 until NUM_DRAGONS) {
+        for (i in 0 until numDragons) {
             val x = 1300f + (i * 500f) + (Math.random() * 200f).toFloat() // Cách đều khoảng 700px
             val y = 400f + (Math.random() * 400f).toFloat() // Random Y từ 400-800
             dragons.add(Dragon(gameContext, x, y))
