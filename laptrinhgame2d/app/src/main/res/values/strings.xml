@@ -1,3 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">laptrinhgame2d</string>
+    <string name="app_name">LapTrinhGame2D</string>
+
+    <!-- Level Victory Dialog -->
+    <string name="level_complete">Level Complete!</string>
+    <string name="completion_time_format">⏱ Time: %s</string>
+    <string name="hero_format">⚔️ Hero: %s</string>
+    <string name="enemies_defeated_format">💀 Enemies Defeated: %d</string>
+    <string name="next_level">➤ NEXT LEVEL</string>
+    <string name="view_history">VIEW HISTORY</string>
+    <string name="replay_level">REPLAY LEVEL</string>
+    <string name="main_menu">MAIN MENU</string>
+
+    <!-- Game Complete Dialog -->
+    <string name="bravo_title">🎉 BRAVO! 🎉</string>
+    <string name="game_complete_message">Congratulations!\nYou have completed the entire game!</string>
+    <string name="play_again">PLAY AGAIN</string>
+
+    <!-- Default values for display -->
+    <string name="default_time">⏱ Time: 03:45</string>
+    <string name="default_hero">⚔️ Hero: Fighter</string>
+    <string name="default_enemies">💀 Enemies Defeated: 8</string>
 </resources>
