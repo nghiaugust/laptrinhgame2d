@@ -344,9 +344,16 @@ class SamuraiArcher(private val context: Context, private var x: Float, var y: F
         }
     }
 
+    /**
+     * Kiểm tra xem có thể tấn công không
+     */
+    fun canAttack(): Boolean {
+        return !((isAnimationLocked && !isJumping) || isDead)
+    }
+
     fun attack() {
         // Cho phép tấn công kể cả khi đang nhảy
-        if ((isAnimationLocked && !isJumping) || isDead) return
+        if (!canAttack()) return
 
         if (combatMode == CombatMode.MELEE) {
             // Bắt đầu charge attack

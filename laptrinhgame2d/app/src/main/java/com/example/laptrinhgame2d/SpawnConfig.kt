@@ -159,7 +159,7 @@ class SpawnConfig {
                         EnemyType.DEMON to 2,
                         EnemyType.MEDUSA to 2
                     ),
-                    baseX = 1600f,
+                    baseX = 1000f,
                     baseY = 400f,
                     spacingX = 400f,
                     randomRangeX = 250f,
@@ -177,7 +177,7 @@ class SpawnConfig {
                         EnemyType.DEMON to 1,
                         EnemyType.MEDUSA to 2
                     ),
-                    baseX = 2500f,
+                    baseX = 1200f,
                     baseY = 400f,
                     spacingX = 450f,
                     randomRangeX = 300f,
@@ -221,7 +221,7 @@ class SpawnConfig {
                         EnemyType.MEDUSA to 1,
                         EnemyType.JINN to 1
                     ),
-                    baseX = 1700f,
+                    baseX = 1000f,
                     baseY = 400f,
                     spacingX = 450f,
                     randomRangeX = 300f,
@@ -240,7 +240,7 @@ class SpawnConfig {
                         EnemyType.MEDUSA to 1,
                         EnemyType.JINN to 1
                     ),
-                    baseX = 2800f,
+                    baseX = 1200f,
                     baseY = 400f,
                     spacingX = 500f,
                     randomRangeX = 350f,
@@ -257,7 +257,7 @@ class SpawnConfig {
                         EnemyType.MEDUSA to 1,
                         EnemyType.JINN to 1
                     ),
-                    baseX = 3800f,
+                    baseX = 1400f,
                     baseY = 400f,
                     spacingX = 600f,
                     randomRangeX = 400f,

@@ -228,7 +228,7 @@ class Medusa(private val context: Context, private var x: Float, var y: Float) {
                         }
                         State.DEAD -> {
                             currentFrame = currentFrames.size - 1
-                            isDead = true
+                            // isDead đã được set = true trong takeDamage()
                         }
                         else -> {
                             currentFrame = 0
@@ -373,6 +373,7 @@ class Medusa(private val context: Context, private var x: Float, var y: Float) {
         if (health <= 0) {
             health = 0
             setState(State.DEAD)
+            isDead = true  // Set isDead ngay lập tức khi chết
         } else {
             setState(State.HURT)
         }

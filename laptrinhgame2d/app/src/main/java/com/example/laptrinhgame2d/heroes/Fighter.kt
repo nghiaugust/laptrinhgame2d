@@ -240,9 +240,16 @@ class Fighter(private val context: Context, private var x: Float, var y: Float) 
         updateAnimation()
     }
 
+    /**
+     * Kiểm tra xem có thể tấn công không
+     */
+    fun canAttack(): Boolean {
+        return !((isAnimationLocked && !isJumping) || isDead || isShieldActive)
+    }
+
     fun attack() {
         // Cho phép tấn công kể cả khi đang nhảy, chỉ cần không bị khóa animation khác
-        if ((isAnimationLocked && !isJumping) || isDead || isShieldActive) return
+        if (!canAttack()) return
 
         attackComboTimer = attackComboTimeout
         attackComboCounter++

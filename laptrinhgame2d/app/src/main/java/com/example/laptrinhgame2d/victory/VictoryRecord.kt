@@ -9,7 +9,18 @@ data class VictoryRecord(
     val completionTimeMs: Long, // Thời gian hoàn thành (milliseconds)
     val characterType: String, // Fighter, Samurai_Archer, etc.
     val enemiesKilled: Int, // Số quái đã giết
-    val timestamp: Long = System.currentTimeMillis() // Thời điểm chiến thắng
+    val timestamp: Long = System.currentTimeMillis(), // Thời điểm chiến thắng
+    
+    // Score system
+    val baseScore: Int = 0,        // Điểm cơ bản (quái tiêu diệt)
+    val bonusScore: Int = 0,       // Điểm bonus
+    val totalScore: Int = 0,       // Tổng điểm
+    val flawlessScore: Int = 0,    // Điểm Flawless còn lại (0-2000)
+    
+    // Bonus details
+    val achievedTimeBonus: Boolean = false,    // Đạt time bonus
+    val achievedNoHitBonus: Boolean = false,   // Đạt no hit bonus (có điểm Flawless)
+    val achievedComboBonus: Boolean = false    // Đạt combo bonus
 ) {
     // Format thời gian hoàn thành thành MM:SS
     fun getFormattedTime(): String {

@@ -4,6 +4,8 @@ import android.content.Context
 import android.content.Intent
 import android.graphics.Canvas
 import android.graphics.Color
+import android.graphics.Paint
+import android.graphics.Typeface
 import android.view.MotionEvent
 import android.view.SurfaceHolder
 import android.view.SurfaceView
@@ -86,6 +88,20 @@ class GameView(
     private var spawnConfig: SpawnConfig.LevelSpawnConfig? = null
     private var currentWaveEnemyCount: Int = 0 // Số quái của wave hiện tại
 
+    // ===== SOUND SYSTEM =====
+    private var soundManager: SoundManager = SoundManager(context, characterType)
+    private var isPlayerRunning: Boolean = false // Theo dõi trạng thái chạy
+    private var previousSkillCount: Int = 0 // Theo dõi số skill projectiles để phát/dừng âm thanh
+
+    // ===== GAME MODE SYSTEM =====
+    private var gameModeConfig: GameModeConfig.LevelModeConfig? = null
+    private var gameTimer: Int = 0 // Thời gian đã chơi (giây)
+    private var frameCounter: Int = 0 // Đếm frame để tính giây
+    private var remainingTime: Int = 0 // Thời gian còn lại (cho time attack mode)
+    private var flawlessScore: Int = 2000 // Điểm Flawless bắt đầu 2000, mỗi lần bị đánh -100
+    private var maxComboAchieved: Int = 0 // Combo cao nhất đạt được
+    private var enemiesKilled: Int = 0 // Số quái đã tiêu diệt
+
     // Lấy tổng số quái từ LevelConfig thay vì hardcode
     private val totalEnemies: Int
         get() = levelConfig.totalEnemies
@@ -96,6 +112,15 @@ class GameView(
         // Khởi tạo Level Management
         currentLevel = levelManager.getLevelFromMapType(mapType)
         levelConfig = levelManager.getLevelConfig(currentLevel)
+        
+        // Khởi tạo Game Mode Config
+        gameModeConfig = GameModeConfig.getConfigForLevel(mapType)
+        remainingTime = gameModeConfig?.timeLimit ?: 0
+        gameTimer = 0
+        frameCounter = 0
+        flawlessScore = 2000
+        maxComboAchieved = 0
+        enemiesKilled = 0
         
         // Khởi tạo Spawn Config
         spawnConfig = SpawnConfig.getSpawnConfig(currentLevel)
@@ -129,13 +154,39 @@ class GameView(
         var spawnIndex = 0
         var enemiesSpawned = 0
         
+        // Lấy vị trí player hiện tại
+        val playerX = fighter?.getX() ?: samuraiArcher?.getX() ?: samuraiCommander?.getX() ?: 0f
+        
+        // Chỉ điều chỉnh baseX nếu nó quá xa camera (> 2000) - spawn ở phía trước player
+        val adjustedBaseX = if (waveConfig.baseX > 2000f) {
+            // Spawn trước mặt player khoảng 600-1000 pixels
+            playerX + 800f
+        } else {
+            // Giữ nguyên vị trí config gốc
+            waveConfig.baseX
+        }
+        
+        // Tạo config tạm với baseX đã điều chỉnh
+        val adjustedConfig = SpawnConfig.WaveConfig(
+            waveNumber = waveConfig.waveNumber,
+            spawnOnPreviousWaveCleared = waveConfig.spawnOnPreviousWaveCleared,
+            delaySeconds = waveConfig.delaySeconds,
+            enemies = waveConfig.enemies,
+            baseX = adjustedBaseX,
+            baseY = waveConfig.baseY,
+            spacingX = waveConfig.spacingX,
+            randomRangeX = waveConfig.randomRangeX,
+            randomRangeY = waveConfig.randomRangeY,
+            pattern = waveConfig.pattern
+        )
+        
         // Spawn từng loại quái theo config của wave
         val enemyTypes = waveConfig.enemies.entries.toList()
         
         for ((enemyType, count) in enemyTypes) {
             for (i in 0 until count) {
                 val (x, y) = SpawnConfig.calculateSpawnPosition(
-                    waveConfig,
+                    adjustedConfig,
                     spawnIndex,
                     waveConfig.totalEnemies
                 )
@@ -188,7 +239,6 @@ class GameView(
             }
             
             // Kiểm tra wave hiện tại đã chết hết chưa
-            // Đếm cả quái sống và quái đã chết (chưa bị remove)
             val currentAliveEnemies = skeletons.count { !it.isDead() } +
                                      demons.count { !it.isDead() } +
                                      medusas.count { !it.isDead() } +
@@ -196,14 +246,8 @@ class GameView(
                                      smallDragons.count { !it.isDead() } +
                                      dragons.count { !it.isDead() }
             
-            val totalEnemiesInLists = skeletons.size + demons.size + medusas.size + 
-                                      jinns.size + smallDragons.size + dragons.size
-            
-            // Debug log (có thể bỏ sau)
-            // android.util.Log.d("WaveSystem", "Wave: $currentWaveNumber, Alive: $currentAliveEnemies, Total: $totalEnemiesInLists, WaveCount: $currentWaveEnemyCount")
-            
             // Nếu wave hiện tại đã chết hết (không còn quái sống) và còn wave tiếp theo
-            if (currentAliveEnemies == 0 && currentWaveEnemyCount > 0 && currentWaveNumber <= config.totalWaves) {
+            if (currentAliveEnemies == 0 && currentWaveNumber <= config.totalWaves) {
                 if (!isWaitingForNextWave) {
                     // Bắt đầu đợi để spawn wave tiếp theo
                     lastWaveClearedTime = System.currentTimeMillis()
@@ -394,6 +438,9 @@ class GameView(
                 e.printStackTrace()
             }
         }
+        
+        // Giải phóng tài nguyên âm thanh
+        soundManager.release()
     }
 
     override fun onTouchEvent(event: MotionEvent): Boolean {
@@ -416,18 +463,56 @@ class GameView(
 
                 if (attackButton.isPressed(x, y)) {
                     attackButton.onTouch(pointerId)
-                    fighter?.attack()
-                    samuraiArcher?.attack()
-                    samuraiCommander?.attack()
+                    
+                    // Kiểm tra xem hero có thể tấn công không TRƯỚC khi phát âm thanh
+                    val canAttack = when (characterType) {
+                        "Fighter" -> fighter?.canAttack() ?: false
+                        "Samurai_Commander" -> samuraiCommander?.canAttack() ?: false
+                        "Samurai_Archer" -> samuraiArcher?.canAttack() ?: false
+                        else -> false
+                    }
+                    
+                    // Chỉ phát âm thanh và tấn công nếu hero KHÔNG bị khóa animation
+                    if (canAttack) {
+                        // Phát âm thanh tấn công theo loại hero
+                        when (characterType) {
+                            "Fighter", "Samurai_Commander" -> {
+                                soundManager.playAttackSound()
+                            }
+                            "Samurai_Archer" -> {
+                                // Archer phức tạp hơn, kiểm tra combat mode
+                                samuraiArcher?.let { archer ->
+                                    if (archer.getCombatMode() == SamuraiArcher.CombatMode.MELEE) {
+                                        // Chế độ cận chiến - phát âm thanh chém
+                                        soundManager.playSlashSound()
+                                    } else {
+                                        // Chế độ xa - phát âm thanh bắn cung
+                                        soundManager.playBowSound()
+                                    }
+                                }
+                            }
+                        }
+                        
+                        // Thực hiện tấn công
+                        fighter?.attack()
+                        samuraiArcher?.attack()
+                        samuraiCommander?.attack()
+                    }
                 }
 
                 if (characterType == "Samurai_Archer" && bowButton.isPressed(x, y)) {
                     bowButton.onTouch(pointerId)
                     samuraiArcher?.let { archer ->
-                        if (archer.getCombatMode() == SamuraiArcher.CombatMode.MELEE) {
-                            archer.switchCombatMode()
+                        // Kiểm tra có thể tấn công không
+                        if (archer.canAttack()) {
+                            if (archer.getCombatMode() == SamuraiArcher.CombatMode.MELEE) {
+                                archer.switchCombatMode()
+                            }
+                            archer.attack()
+                            
+                            // Phát âm thanh bắn cung (bow button luôn là ranged mode)
+                            soundManager.playBowSound()
                         }
-                        archer.attack()
                     }
                 }
 
@@ -455,7 +540,12 @@ class GameView(
 
                 if (attackButton.pointerId == pointerId) {
                     attackButton.reset()
-                    samuraiArcher?.releaseAttack()
+                    
+                    // Archer: Khi release attack (giữ lâu) → skill sẽ được bắn
+                    // Âm thanh sẽ được phát trong SamuraiArcher khi skill được bắn
+                    if (characterType == "Samurai_Archer") {
+                        samuraiArcher?.releaseAttack()
+                    }
                 }
 
                 if (bowButton.pointerId == pointerId) {
@@ -478,6 +568,29 @@ class GameView(
     fun update() {
         if (isGameOver || isPaused || isVictory) return
 
+        // ===== GAME TIMER & TIME LIMIT CHECK =====
+        frameCounter++
+        if (frameCounter >= 60) { // 60 FPS = 1 giây
+            frameCounter = 0
+            gameTimer++
+            
+            // Kiểm tra time limit (nếu có)
+            gameModeConfig?.let { config ->
+                if (config.timeLimit != null) {
+                    remainingTime = config.timeLimit - gameTimer
+                    
+                    // Hết thời gian -> Thua
+                    if (remainingTime <= 0 && !isGameOver && !isVictory) {
+                        isGameOver = true
+                        handler.postDelayed({
+                            showGameOver()
+                        }, 500)
+                        return
+                    }
+                }
+            }
+        }
+
         // ===== WAVE SPAWN SYSTEM =====
         checkAndSpawnNextWave()
 
@@ -494,6 +607,33 @@ class GameView(
         fighter?.update(joystickX, joystickY)
         samuraiArcher?.update(joystickX, joystickY)
         samuraiCommander?.update(joystickX, joystickY)
+
+        // ===== QUẢN LÝ ÂM THANH CHẠY =====
+        val isMoving = joystickX != 0f || joystickY != 0f
+        if (isMoving && !isPlayerRunning) {
+            // Bắt đầu chạy, phát âm thanh
+            soundManager.playRunSound()
+            isPlayerRunning = true
+        } else if (!isMoving && isPlayerRunning) {
+            // Dừng chạy, tắt âm thanh
+            soundManager.stopRunSound()
+            isPlayerRunning = false
+        }
+        
+        // ===== QUẢN LÝ ÂM THANH KIẾM BAY (ARCHER) =====
+        if (characterType == "Samurai_Archer") {
+            val activeSkills = samuraiArcher?.getSkillProjectiles()?.count { it.isActive() } ?: 0
+            
+            if (activeSkills > 0 && previousSkillCount == 0) {
+                // Có skill mới được bắn ra -> phát âm thanh
+                soundManager.playFlyingSwordSound()
+            } else if (activeSkills == 0 && previousSkillCount > 0) {
+                // Tất cả skill đã hết (va chạm hoặc hết tầm) -> dừng âm thanh
+                soundManager.stopFlyingSwordSound()
+            }
+            
+            previousSkillCount = activeSkills
+        }
 
         // Lấy groundY từ map hiện tại
         val groundY = when (mapType) {
@@ -553,7 +693,7 @@ class GameView(
         // ===== KIỂM TRA VÀ SPAWN WAVE TIẾP THEO (TRƯỚC KHI REMOVE) =====
         checkAndSpawnNextWave()
 
-        // Sau đó mới remove enemies
+        // Remove enemies đã chết (counter đã được tăng trong damageSkeletonAndCheck, damageDemonAndCheck, etc.)
         skeletons.removeAll { it.shouldBeRemoved() }
         demons.removeAll { it.shouldBeRemoved() }
         medusas.removeAll { it.shouldRemove() }
@@ -595,10 +735,16 @@ class GameView(
                     ?: samuraiCommander?.isCollidingWith(skeleton.getX(), skeleton.y, attackRange)
                     ?: false
                 if (isPlayerColliding) {
+                    // Phát âm thanh Skeleton tấn công
+                    soundManager.playSkeletonAttackSound()
+                    
                     fighter?.takeDamage(skeleton.getAttackDamage())
                     samuraiArcher?.takeDamage(skeleton.getAttackDamage())
                     samuraiCommander?.takeDamage(skeleton.getAttackDamage())
                     skeleton.markDamageDealt()
+                    
+                    // Trừ điểm Flawless và phát âm thanh bị đánh
+                    onPlayerHit()
                 }
             }
         }
@@ -612,10 +758,16 @@ class GameView(
                     ?: samuraiCommander?.isCollidingWith(demon.getX(), demon.y, attackRange)
                     ?: false
                 if (isPlayerColliding) {
+                    // Phát âm thanh Demon tấn công
+                    soundManager.playDemonAttackSound()
+                    
                     fighter?.takeDamage(demon.getAttackDamage())
                     samuraiArcher?.takeDamage(demon.getAttackDamage())
                     samuraiCommander?.takeDamage(demon.getAttackDamage())
                     demon.markDamageDealt()
+                    
+                    // Phát âm thanh bị đánh
+                    onPlayerHit()
                 }
             }
         }
@@ -629,10 +781,16 @@ class GameView(
                             projectile.startExploding()
                         }
                         if (projectile.canDealDamage()) {
+                            // Phát âm thanh Medusa tấn công
+                            soundManager.playMedusaAttackSound()
+                            
                             fighter?.takeDamage(projectile.getDamage())
                             samuraiArcher?.takeDamage(projectile.getDamage())
                             samuraiCommander?.takeDamage(projectile.getDamage())
                             projectile.markDamageDealt()
+                            
+                            // Phát âm thanh bị đánh
+                            onPlayerHit()
                         }
                     }
                 }
@@ -644,10 +802,16 @@ class GameView(
             if (!jinn.isDead()) {
                 for (projectile in jinn.projectiles) {
                     if (projectile.canDealDamage() && projectile.isCollidingWith(playerX, playerY, 100f)) {
+                        // Phát âm thanh Jinn tấn công
+                        soundManager.playJinnAttackSound()
+                        
                         fighter?.takeDamage(projectile.getDamage())
                         samuraiArcher?.takeDamage(projectile.getDamage())
                         samuraiCommander?.takeDamage(projectile.getDamage())
                         projectile.markDamageDealt()
+                        
+                        // Phát âm thanh bị đánh
+                        onPlayerHit()
                     }
                 }
             }
@@ -658,10 +822,16 @@ class GameView(
             if (!dragon.isDead()) {
                 for (projectile in dragon.projectiles) {
                     if (projectile.canDealDamage() && projectile.isCollidingWith(playerX, playerY, 110f)) {
+                        // Phát âm thanh SmallDragon tấn công
+                        soundManager.playSmallDragonAttackSound()
+                        
                         fighter?.takeDamage(projectile.getDamage())
                         samuraiArcher?.takeDamage(projectile.getDamage())
                         samuraiCommander?.takeDamage(projectile.getDamage())
                         projectile.markDamageDealt()
+                        
+                        // Phát âm thanh bị đánh
+                        onPlayerHit()
                     }
                 }
             }
@@ -672,10 +842,16 @@ class GameView(
             if (!dragon.isDead()) {
                 for (fire in dragon.fireProjectiles) {
                     if (fire.canDealDamage() && fire.isCollidingWith(playerX, playerY, 90f)) {
+                        // Phát âm thanh Dragon tấn công
+                        soundManager.playDragonAttackSound()
+                        
                         fighter?.takeDamage(fire.getDamage())
                         samuraiArcher?.takeDamage(fire.getDamage())
                         samuraiCommander?.takeDamage(fire.getDamage())
                         fire.markDamageDealt()
+                        
+                        // Phát âm thanh bị đánh
+                        onPlayerHit()
                     }
                 }
             }
@@ -692,7 +868,7 @@ class GameView(
                     val dx = skeleton.getX() - playerX
                     val isFacingSkeleton = (dx > 0 && playerFacingRight) || (dx < 0 && !playerFacingRight)
                     if (isFacingSkeleton) {
-                        skeleton.takeDamage(damage)
+                        damageSkeletonAndCheck(skeleton, damage)
                         fighter?.markDamageDealt()
                         samuraiArcher?.markDamageDealt()
                         samuraiCommander?.markDamageDealt()
@@ -705,7 +881,7 @@ class GameView(
                     val dx = demon.getX() - playerX
                     val isFacingDemon = (dx > 0 && playerFacingRight) || (dx < 0 && !playerFacingRight)
                     if (isFacingDemon) {
-                        demon.takeDamage(damage)
+                        damageDemonAndCheck(demon, damage)
                         fighter?.markDamageDealt()
                         samuraiArcher?.markDamageDealt()
                         samuraiCommander?.markDamageDealt()
@@ -719,7 +895,7 @@ class GameView(
                     val dx = medusa.getX() - playerX
                     val isFacingMedusa = (dx > 0 && playerFacingRight) || (dx < 0 && !playerFacingRight)
                     if (isFacingMedusa) {
-                        medusa.takeDamage(damage)
+                        damageMedusaAndCheck(medusa, damage)
                         fighter?.markDamageDealt()
                         samuraiArcher?.markDamageDealt()
                         samuraiCommander?.markDamageDealt()
@@ -733,7 +909,7 @@ class GameView(
                     val dx = jinn.getX() - playerX
                     val isFacingJinn = (dx > 0 && playerFacingRight) || (dx < 0 && !playerFacingRight)
                     if (isFacingJinn) {
-                        jinn.takeDamage(damage)
+                        damageJinnAndCheck(jinn, damage)
                         fighter?.markDamageDealt()
                         samuraiArcher?.markDamageDealt()
                         samuraiCommander?.markDamageDealt()
@@ -747,7 +923,7 @@ class GameView(
                     val dx = dragon.getX() - playerX
                     val isFacingDragon = (dx > 0 && playerFacingRight) || (dx < 0 && !playerFacingRight)
                     if (isFacingDragon) {
-                        dragon.takeDamage(damage)
+                        damageSmallDragonAndCheck(dragon, damage)
                         fighter?.markDamageDealt()
                         samuraiArcher?.markDamageDealt()
                         samuraiCommander?.markDamageDealt()
@@ -761,7 +937,7 @@ class GameView(
                     val dx = dragon.getX() - playerX
                     val isFacingDragon = (dx > 0 && playerFacingRight) || (dx < 0 && !playerFacingRight)
                     if (isFacingDragon) {
-                        dragon.takeDamage(damage)
+                        damageDragonAndCheck(dragon, damage)
                         fighter?.markDamageDealt()
                         samuraiArcher?.markDamageDealt()
                         samuraiCommander?.markDamageDealt()
@@ -771,47 +947,47 @@ class GameView(
             }
         }
 
-        // Kiểm tra arrows của Samurai_Archer (viết tắt để tiết kiệm chỗ)
+        // Kiểm tra arrows của Samurai_Archer
         samuraiArcher?.getArrows()?.forEach { arrow ->
             // Check collision với tất cả enemies
             for (skeleton in skeletons) {
                 if (!skeleton.isDead() && arrow.isActive() && arrow.checkCollision(skeleton.getX(), skeleton.y, 80f)) {
-                    skeleton.takeDamage(15)
+                    damageSkeletonAndCheck(skeleton, 15)
                     arrow.deactivate()
                     break
                 }
             }
             for (demon in demons) {
                 if (!demon.isDead() && arrow.isActive() && arrow.checkCollision(demon.getX(), demon.y, 80f)) {
-                    demon.takeDamage(15)
+                    damageDemonAndCheck(demon, 15)
                     arrow.deactivate()
                     break
                 }
             }
             for (medusa in medusas) {
                 if (!medusa.isDead() && arrow.isActive() && arrow.checkCollision(medusa.getX(), medusa.y, 80f)) {
-                    medusa.takeDamage(15)
+                    damageMedusaAndCheck(medusa, 15)
                     arrow.deactivate()
                     break
                 }
             }
             for (jinn in jinns) {
                 if (!jinn.isDead() && arrow.isActive() && arrow.checkCollision(jinn.getX(), jinn.y, 80f)) {
-                    jinn.takeDamage(15)
+                    damageJinnAndCheck(jinn, 15)
                     arrow.deactivate()
                     break
                 }
             }
             for (smallDragon in smallDragons) {
                 if (!smallDragon.isDead() && arrow.isActive() && arrow.checkCollision(smallDragon.getX(), smallDragon.y, 120f)) {
-                    smallDragon.takeDamage(15)
+                    damageSmallDragonAndCheck(smallDragon, 15)
                     arrow.deactivate()
                     break
                 }
             }
             for (dragon in dragons) {
                 if (!dragon.isDead() && arrow.isActive() && arrow.checkCollision(dragon.getX(), dragon.y, 120f)) {
-                    dragon.takeDamage(15)
+                    damageDragonAndCheck(dragon, 15)
                     arrow.deactivate()
                     break
                 }
@@ -822,42 +998,42 @@ class GameView(
         samuraiArcher?.getSkillProjectiles()?.forEach { skillProj ->
             for (skeleton in skeletons) {
                 if (!skeleton.isDead() && skillProj.isActive() && skillProj.checkCollision(skeleton.getX(), skeleton.y, 80f)) {
-                    skeleton.takeDamage(skillProj.getDamage())
+                    damageSkeletonAndCheck(skeleton, skillProj.getDamage())
                     skillProj.deactivate()
                     break
                 }
             }
             for (demon in demons) {
                 if (!demon.isDead() && skillProj.isActive() && skillProj.checkCollision(demon.getX(), demon.y, 80f)) {
-                    demon.takeDamage(skillProj.getDamage())
+                    damageDemonAndCheck(demon, skillProj.getDamage())
                     skillProj.deactivate()
                     break
                 }
             }
             for (medusa in medusas) {
                 if (!medusa.isDead() && skillProj.isActive() && skillProj.checkCollision(medusa.getX(), medusa.y, 80f)) {
-                    medusa.takeDamage(skillProj.getDamage())
+                    damageMedusaAndCheck(medusa, skillProj.getDamage())
                     skillProj.deactivate()
                     break
                 }
             }
             for (jinn in jinns) {
                 if (!jinn.isDead() && skillProj.isActive() && skillProj.checkCollision(jinn.getX(), jinn.y, 80f)) {
-                    jinn.takeDamage(skillProj.getDamage())
+                    damageJinnAndCheck(jinn, skillProj.getDamage())
                     skillProj.deactivate()
                     break
                 }
             }
             for (smallDragon in smallDragons) {
                 if (!smallDragon.isDead() && skillProj.isActive() && skillProj.checkCollision(smallDragon.getX(), smallDragon.y, 120f)) {
-                    smallDragon.takeDamage(skillProj.getDamage())
+                    damageSmallDragonAndCheck(smallDragon, skillProj.getDamage())
                     skillProj.deactivate()
                     break
                 }
             }
             for (dragon in dragons) {
                 if (!dragon.isDead() && skillProj.isActive() && skillProj.checkCollision(dragon.getX(), dragon.y, 120f)) {
-                    dragon.takeDamage(skillProj.getDamage())
+                    damageDragonAndCheck(dragon, skillProj.getDamage())
                     skillProj.deactivate()
                     break
                 }
@@ -912,6 +1088,139 @@ class GameView(
         samuraiArcher?.drawUI(canvas)
         samuraiCommander?.drawUI(canvas)
 
+        // ===== VẼ TIMER (nếu có time limit) =====
+        gameModeConfig?.let { config ->
+            if (config.timeLimit != null) {
+                val paint = Paint().apply {
+                    color = when {
+                        remainingTime <= 10 -> Color.RED     // 10 giây cuối: Đỏ
+                        remainingTime <= 30 -> Color.YELLOW  // 30 giây cuối: Vàng
+                        else -> Color.WHITE                  // Còn nhiều thời gian: Trắng
+                    }
+                    textSize = 60f
+                    typeface = Typeface.DEFAULT_BOLD
+                    textAlign = Paint.Align.CENTER
+                    setShadowLayer(5f, 0f, 0f, Color.BLACK)
+                }
+                
+                val timeText = GameModeConfig.formatTime(remainingTime)
+                val timerY = 100f
+                
+                // Vẽ background cho timer
+                val bgPaint = Paint().apply {
+                    color = Color.argb(180, 0, 0, 0)
+                    style = Paint.Style.FILL
+                }
+                val textBounds = android.graphics.Rect()
+                paint.getTextBounds(timeText, 0, timeText.length, textBounds)
+                canvas.drawRoundRect(
+                    width / 2f - textBounds.width() / 2f - 30f,
+                    timerY - 60f,
+                    width / 2f + textBounds.width() / 2f + 30f,
+                    timerY + 15f,
+                    15f, 15f,
+                    bgPaint
+                )
+                
+                canvas.drawText(timeText, width / 2f, timerY, paint)
+                
+                // Vẽ label "TIME"
+                val labelPaint = Paint().apply {
+                    color = Color.LTGRAY
+                    textSize = 30f
+                    textAlign = Paint.Align.CENTER
+                }
+                canvas.drawText("TIME", width / 2f, timerY - 35f, labelPaint)
+            }
+        }
+        
+        // ===== VẼ FLAWLESS SCORE =====
+        val flawlessPaint = Paint().apply {
+            color = when {
+                flawlessScore >= 1500 -> Color.parseColor("#2ECC71") // Xanh lá
+                flawlessScore >= 1000 -> Color.parseColor("#F39C12") // Vàng cam
+                flawlessScore >= 500 -> Color.parseColor("#E67E22")  // Cam
+                flawlessScore > 0 -> Color.parseColor("#E74C3C")     // Đỏ
+                else -> Color.GRAY                                    // Hết điểm
+            }
+            textSize = 40f
+            typeface = Typeface.DEFAULT_BOLD
+            textAlign = Paint.Align.RIGHT
+            setShadowLayer(3f, 0f, 0f, Color.BLACK)
+        }
+        
+        // Vẽ background cho Flawless Score
+        val flawlessBgPaint = Paint().apply {
+            color = Color.argb(180, 0, 0, 0)
+            style = Paint.Style.FILL
+        }
+        
+        val flawlessText = "❤ $flawlessScore"
+        val flawlessTextBounds = android.graphics.Rect()
+        flawlessPaint.getTextBounds(flawlessText, 0, flawlessText.length, flawlessTextBounds)
+        
+        val flawlessX = width - 30f
+        val flawlessY = 80f
+        
+        canvas.drawRoundRect(
+            flawlessX - flawlessTextBounds.width() - 40f,
+            flawlessY - 50f,
+            flawlessX + 10f,
+            flawlessY + 10f,
+            10f, 10f,
+            flawlessBgPaint
+        )
+        
+        canvas.drawText(flawlessText, flawlessX, flawlessY, flawlessPaint)
+        
+        // Vẽ label "FLAWLESS"
+        val flawlessLabelPaint = Paint().apply {
+            color = Color.LTGRAY
+            textSize = 22f
+            textAlign = Paint.Align.RIGHT
+        }
+        canvas.drawText("FLAWLESS", flawlessX, flawlessY - 30f, flawlessLabelPaint)
+        
+        // ===== VẼ ENEMY COUNTER (SỐ QUÁI ĐÃ TIÊU DIỆT) =====
+        val enemyCounterPaint = Paint().apply {
+            color = Color.parseColor("#3498DB") // Xanh dương
+            textSize = 40f
+            typeface = Typeface.DEFAULT_BOLD
+            textAlign = Paint.Align.RIGHT
+            setShadowLayer(3f, 0f, 0f, Color.BLACK)
+        }
+        
+        val enemyCounterBgPaint = Paint().apply {
+            color = Color.argb(180, 0, 0, 0)
+            style = Paint.Style.FILL
+        }
+        
+        val enemyCounterText = "☠ $enemiesKilled/$totalEnemies"
+        val enemyCounterBounds = android.graphics.Rect()
+        enemyCounterPaint.getTextBounds(enemyCounterText, 0, enemyCounterText.length, enemyCounterBounds)
+        
+        val enemyCounterX = width - 30f
+        val enemyCounterY = 160f
+        
+        canvas.drawRoundRect(
+            enemyCounterX - enemyCounterBounds.width() - 40f,
+            enemyCounterY - 50f,
+            enemyCounterX + 10f,
+            enemyCounterY + 10f,
+            10f, 10f,
+            enemyCounterBgPaint
+        )
+        
+        canvas.drawText(enemyCounterText, enemyCounterX, enemyCounterY, enemyCounterPaint)
+        
+        // Vẽ label "ENEMIES"
+        val enemyLabelPaint = Paint().apply {
+            color = Color.LTGRAY
+            textSize = 22f
+            textAlign = Paint.Align.RIGHT
+        }
+        canvas.drawText("ENEMIES", enemyCounterX, enemyCounterY - 30f, enemyLabelPaint)
+
         joystick.draw(canvas)
         settingsButton.draw(canvas)
         attackButton.draw(canvas)
@@ -925,10 +1234,13 @@ class GameView(
     }
 
     private fun showGameOver() {
+        soundManager.pauseBackgroundMusic() // Tạm dừng nhạc nền khi game over
+        
         handler.postDelayed({
             gameOverDialog = GameOverDialog(
                 context,
                 onContinue = {
+                    soundManager.playBackgroundMusic() // Tiếp tục nhạc nền khi chơi lại
                     resetGame()
                 },
                 onRestart = {
@@ -940,14 +1252,21 @@ class GameView(
 
     private fun showPauseMenu() {
         isPaused = true
+        soundManager.pauseAllSounds() // Tạm dừng âm thanh khi pause
+        soundManager.pauseBackgroundMusic() // Tạm dừng nhạc nền khi pause
+        
         handler.post {
             pauseMenuDialog = PauseMenuDialog(
                 context,
                 onContinue = {
                     isPaused = false
+                    soundManager.resumeAllSounds() // Tiếp tục âm thanh khi continue
+                    soundManager.resumeBackgroundMusic() // Tiếp tục nhạc nền khi continue
                 },
                 onRestart = {
                     isPaused = false
+                    soundManager.stopAllSounds() // Dừng hết âm thanh khi restart
+                    soundManager.playBackgroundMusic() // Phát lại nhạc nền từ đầu
                     resetGame()
                 },
                 onCharacterSelect = {
@@ -972,12 +1291,36 @@ class GameView(
     // ===== VICTORY SYSTEM VỚI LEVEL PROGRESSION =====
     private fun showVictory() {
         val completionTime = System.currentTimeMillis() - gameStartTime
+        val completionTimeSeconds = (completionTime / 1000).toInt()
+        
+        // Tính điểm bonus dựa trên performance
+        val bonusResult = GameModeConfig.calculateBonus(
+            mapType,
+            completionTimeSeconds,
+            flawlessScore,
+            maxComboAchieved
+        )
+        
+        // Điểm cơ bản: mỗi quái = 100 điểm
+        val baseScore = totalEnemies * 100
+        val totalScore = baseScore + bonusResult.totalBonusScore
 
         val victoryRecord = VictoryRecord(
             completionTimeMs = completionTime,
             characterType = characterType,
             enemiesKilled = totalEnemies, // Sử dụng totalEnemies từ LevelConfig
-            timestamp = System.currentTimeMillis()
+            timestamp = System.currentTimeMillis(),
+            
+            // Score data
+            baseScore = baseScore,
+            bonusScore = bonusResult.totalBonusScore,
+            totalScore = totalScore,
+            flawlessScore = flawlessScore,
+            
+            // Bonus achievements
+            achievedTimeBonus = bonusResult.achievedTimeBonus,
+            achievedNoHitBonus = bonusResult.achievedNoHitBonus,
+            achievedComboBonus = bonusResult.achievedComboBonus
         )
 
         victoryManager.saveVictory(victoryRecord)
@@ -1011,6 +1354,8 @@ class GameView(
     }
 
     private fun showLevelVictoryDialog(victoryRecord: VictoryRecord) {
+        soundManager.pauseBackgroundMusic() // Tạm dừng nhạc nền khi chiến thắng
+        
         handler.post {
             levelVictoryDialog = LevelVictoryDialog(
                 context,
@@ -1018,6 +1363,7 @@ class GameView(
                 currentLevel,
                 onNextLevel = {
                     // Chuyển sang level tiếp theo
+                    soundManager.playBackgroundMusic() // Tiếp tục nhạc nền khi chơi tiếp
                     levelManager.proceedToNextLevel(currentLevel, characterType)
                 },
                 onViewHistory = {
@@ -1028,6 +1374,7 @@ class GameView(
                 },
                 onPlayAgain = {
                     isVictory = false
+                    soundManager.playBackgroundMusic() // Tiếp tục nhạc nền khi chơi lại
                     resetGame()
                 },
                 onMainMenu = {
@@ -1066,7 +1413,77 @@ class GameView(
         isWaitingForNextWave = false
         currentWaveEnemyCount = 0
 
+        // Reset game mode tracking
+        gameTimer = 0
+        frameCounter = 0
+        flawlessScore = 2000
+        maxComboAchieved = 0
+        enemiesKilled = 0
+        gameModeConfig?.let {
+            remainingTime = it.timeLimit ?: 0
+        }
+
         gameStartTime = System.currentTimeMillis()
+    }
+    
+    /**
+     * Helper function khi player bị đánh
+     */
+    private fun onPlayerHit() {
+        // Trừ 100 điểm, tối thiểu là 0
+        flawlessScore = maxOf(0, flawlessScore - 100)
+        soundManager.playHitSound()
+    }
+    
+    /**
+     * Helper function: Tấn công quái và kiểm tra nếu chết thì tăng counter ngay
+     */
+    private fun damageSkeletonAndCheck(skeleton: Skeleton, damage: Int) {
+        val wasAlive = !skeleton.isDead()
+        skeleton.takeDamage(damage)
+        if (wasAlive && skeleton.isDead()) {
+            enemiesKilled++
+        }
+    }
+    
+    private fun damageDemonAndCheck(demon: Demon, damage: Int) {
+        val wasAlive = !demon.isDead()
+        demon.takeDamage(damage)
+        if (wasAlive && demon.isDead()) {
+            enemiesKilled++
+        }
+    }
+    
+    private fun damageMedusaAndCheck(medusa: Medusa, damage: Int) {
+        val wasAlive = !medusa.isDead()
+        medusa.takeDamage(damage)
+        if (wasAlive && medusa.isDead()) {
+            enemiesKilled++
+        }
+    }
+    
+    private fun damageJinnAndCheck(jinn: Jinn, damage: Int) {
+        val wasAlive = !jinn.isDead()
+        jinn.takeDamage(damage)
+        if (wasAlive && jinn.isDead()) {
+            enemiesKilled++
+        }
+    }
+    
+    private fun damageSmallDragonAndCheck(dragon: SmallDragon, damage: Int) {
+        val wasAlive = !dragon.isDead()
+        dragon.takeDamage(damage)
+        if (wasAlive && dragon.isDead()) {
+            enemiesKilled++
+        }
+    }
+    
+    private fun damageDragonAndCheck(dragon: Dragon, damage: Int) {
+        val wasAlive = !dragon.isDead()
+        dragon.takeDamage(damage)
+        if (wasAlive && dragon.isDead()) {
+            enemiesKilled++
+        }
     }
 
     private val handler = android.os.Handler(android.os.Looper.getMainLooper())

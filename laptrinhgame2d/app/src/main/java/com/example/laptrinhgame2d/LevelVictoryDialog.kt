@@ -122,6 +122,115 @@ class LevelVictoryDialog(
                 }
             }
             statsContainer.addView(timeText)
+            
+            // Score stat (ĐIỂM CHÍNH)
+            val scoreText = TextView(context).apply {
+                text = "⭐ Score: ${victoryRecord.totalScore}"
+                textSize = 20f
+                setTextColor(Color.parseColor("#F39C12"))
+                gravity = Gravity.CENTER
+                typeface = Typeface.DEFAULT_BOLD
+                setShadowLayer(3f, 1f, 1f, Color.BLACK)
+                layoutParams = LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.WRAP_CONTENT,
+                    LinearLayout.LayoutParams.WRAP_CONTENT
+                ).apply {
+                    gravity = Gravity.CENTER
+                    setMargins(0, 0, 0, dpToPx(8))
+                }
+            }
+            statsContainer.addView(scoreText)
+            
+            // Bonus details (nếu có bonus)
+            if (victoryRecord.bonusScore > 0) {
+                val bonusDetailsContainer = LinearLayout(context).apply {
+                    orientation = LinearLayout.VERTICAL
+                    layoutParams = LinearLayout.LayoutParams(
+                        LinearLayout.LayoutParams.MATCH_PARENT,
+                        LinearLayout.LayoutParams.WRAP_CONTENT
+                    ).apply {
+                        setMargins(dpToPx(10), 0, dpToPx(10), dpToPx(8))
+                    }
+                    setPadding(dpToPx(8), dpToPx(6), dpToPx(8), dpToPx(6))
+                    
+                    val bgDrawable = GradientDrawable().apply {
+                        setColor(Color.parseColor("#27AE60"))
+                        cornerRadius = dpToPx(8).toFloat()
+                    }
+                    background = bgDrawable
+                }
+                
+                // Bonus header
+                val bonusHeader = TextView(context).apply {
+                    text = "🎁 BONUS: +${victoryRecord.bonusScore}"
+                    textSize = 14f
+                    setTextColor(Color.parseColor("#FFD700"))
+                    gravity = Gravity.CENTER
+                    typeface = Typeface.DEFAULT_BOLD
+                    layoutParams = LinearLayout.LayoutParams(
+                        LinearLayout.LayoutParams.WRAP_CONTENT,
+                        LinearLayout.LayoutParams.WRAP_CONTENT
+                    ).apply {
+                        gravity = Gravity.CENTER
+                        setMargins(0, 0, 0, dpToPx(4))
+                    }
+                }
+                bonusDetailsContainer.addView(bonusHeader)
+                
+                // Individual bonus achievements
+                if (victoryRecord.achievedTimeBonus) {
+                    val timeBonusText = TextView(context).apply {
+                        text = "✓ Speed Bonus: +1000"
+                        textSize = 11f
+                        setTextColor(Color.WHITE)
+                        gravity = Gravity.CENTER
+                        layoutParams = LinearLayout.LayoutParams(
+                            LinearLayout.LayoutParams.WRAP_CONTENT,
+                            LinearLayout.LayoutParams.WRAP_CONTENT
+                        ).apply {
+                            gravity = Gravity.CENTER
+                            setMargins(0, 0, 0, dpToPx(2))
+                        }
+                    }
+                    bonusDetailsContainer.addView(timeBonusText)
+                }
+                
+                if (victoryRecord.achievedNoHitBonus) {
+                    val flawlessPoints = victoryRecord.flawlessScore
+                    val noHitBonusText = TextView(context).apply {
+                        text = "✓ Flawless Bonus: +$flawlessPoints"
+                        textSize = 11f
+                        setTextColor(Color.WHITE)
+                        gravity = Gravity.CENTER
+                        layoutParams = LinearLayout.LayoutParams(
+                            LinearLayout.LayoutParams.WRAP_CONTENT,
+                            LinearLayout.LayoutParams.WRAP_CONTENT
+                        ).apply {
+                            gravity = Gravity.CENTER
+                            setMargins(0, 0, 0, dpToPx(2))
+                        }
+                    }
+                    bonusDetailsContainer.addView(noHitBonusText)
+                }
+                
+                if (victoryRecord.achievedComboBonus) {
+                    val comboBonusText = TextView(context).apply {
+                        text = "✓ Combo Master: +500"
+                        textSize = 11f
+                        setTextColor(Color.WHITE)
+                        gravity = Gravity.CENTER
+                        layoutParams = LinearLayout.LayoutParams(
+                            LinearLayout.LayoutParams.WRAP_CONTENT,
+                            LinearLayout.LayoutParams.WRAP_CONTENT
+                        ).apply {
+                            gravity = Gravity.CENTER
+                        }
+                    }
+                    bonusDetailsContainer.addView(comboBonusText)
+                }
+                
+                statsContainer.addView(bonusDetailsContainer)
+            }
 
             // Hero stat
             val heroText = TextView(context).apply {
