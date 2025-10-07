@@ -28,6 +28,11 @@ class MainActivity : AppCompatActivity() {
 
         // ===== THÊM: Lấy map type từ intent (mặc định là 1 - Grassland) =====
         val mapType = intent.getIntExtra("MAP_TYPE", 1)
+        
+        // Reset HP khi bắt đầu từ màn 1
+        if (mapType == 1) {
+            GameView.resetAllHP()
+        }
 
         // Tạo và set GameView với loại nhân vật và map type
         gameView = GameView(this, characterType, mapType)

@@ -140,9 +140,27 @@ class GameView(
         settingsButton = GameButton(0f, 0f, 70f, "⚙", Color.rgb(150, 150, 150))
 
         when (characterType) {
-            "Fighter" -> fighter = Fighter(context, 500f, 400f)
-            "Samurai_Archer" -> samuraiArcher = SamuraiArcher(context, 500f, 400f)
-            "Samurai_Commander" -> samuraiCommander = SamuraiCommander(context, 500f, 400f)
+            "Fighter" -> {
+                fighter = Fighter(context, 500f, 400f)
+                // Restore HP từ màn trước (nếu có)
+                getSavedFighterHP()?.let { savedHP ->
+                    fighter?.setHealth(savedHP)
+                }
+            }
+            "Samurai_Archer" -> {
+                samuraiArcher = SamuraiArcher(context, 500f, 400f)
+                // Restore HP từ màn trước (nếu có)
+                getSavedSamuraiArcherHP()?.let { savedHP ->
+                    samuraiArcher?.setHealth(savedHP)
+                }
+            }
+            "Samurai_Commander" -> {
+                samuraiCommander = SamuraiCommander(context, 500f, 400f)
+                // Restore HP từ màn trước (nếu có)
+                getSavedSamuraiCommanderHP()?.let { savedHP ->
+                    samuraiCommander?.setHealth(savedHP)
+                }
+            }
         }
 
         // KHÔNG spawn enemies ở đây nữa, spawn theo wave trong update()
@@ -579,12 +597,21 @@ class GameView(
                 if (config.timeLimit != null) {
                     remainingTime = config.timeLimit - gameTimer
                     
-                    // Hết thời gian -> Thua
+                    // Hết thời gian
                     if (remainingTime <= 0 && !isGameOver && !isVictory) {
-                        isGameOver = true
-                        handler.postDelayed({
-                            showGameOver()
-                        }, 500)
+                        // SURVIVAL mode: hết thời gian = THẮNG
+                        if (config.gameMode == GameModeConfig.GameMode.SURVIVAL) {
+                            isVictory = true
+                            handler.postDelayed({
+                                showVictory()
+                            }, 500)
+                        } else {
+                            // Các mode khác: hết thời gian = THUA
+                            isGameOver = true
+                            handler.postDelayed({
+                                showGameOver()
+                            }, 500)
+                        }
                         return
                     }
                 }
@@ -1293,6 +1320,11 @@ class GameView(
         val completionTime = System.currentTimeMillis() - gameStartTime
         val completionTimeSeconds = (completionTime / 1000).toInt()
         
+        // Lưu HP hiện tại của hero để chuyển sang màn tiếp theo
+        fighter?.let { saveFighterHP(it.getHealth()) }
+        samuraiArcher?.let { saveSamuraiArcherHP(it.getHealth()) }
+        samuraiCommander?.let { saveSamuraiCommanderHP(it.getHealth()) }
+        
         // Tính điểm bonus dựa trên performance
         val bonusResult = GameModeConfig.calculateBonus(
             mapType,
@@ -1487,6 +1519,38 @@ class GameView(
     }
 
     private val handler = android.os.Handler(android.os.Looper.getMainLooper())
+    
+    companion object {
+        // Lưu HP của hero qua các màn
+        private var persistedFighterHP: Int? = null
+        private var persistedSamuraiArcherHP: Int? = null
+        private var persistedSamuraiCommanderHP: Int? = null
+        
+        fun saveFighterHP(hp: Int) {
+            persistedFighterHP = hp
+        }
+        
+        fun getSavedFighterHP(): Int? = persistedFighterHP
+        
+        fun saveSamuraiArcherHP(hp: Int) {
+            persistedSamuraiArcherHP = hp
+        }
+        
+        fun getSavedSamuraiArcherHP(): Int? = persistedSamuraiArcherHP
+        
+        fun saveSamuraiCommanderHP(hp: Int) {
+            persistedSamuraiCommanderHP = hp
+        }
+        
+        fun getSavedSamuraiCommanderHP(): Int? = persistedSamuraiCommanderHP
+        
+        // Reset tất cả HP khi bắt đầu từ màn 1
+        fun resetAllHP() {
+            persistedFighterHP = null
+            persistedSamuraiArcherHP = null
+            persistedSamuraiCommanderHP = null
+        }
+    }
 }
 
 class GameThread(private val surfaceHolder: SurfaceHolder, private val gameView: GameView) : Thread() {

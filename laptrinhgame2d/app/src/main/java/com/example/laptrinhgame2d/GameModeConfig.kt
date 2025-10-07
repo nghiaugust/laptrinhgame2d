@@ -83,14 +83,13 @@ object GameModeConfig {
      */
     val VOLCANO_CONFIG = LevelModeConfig(
         levelName = "Volcano",
-        gameMode = GameMode.BOSS_BATTLE,
-        timeLimit = 300, // 5 phút (300 giây)
+        gameMode = GameMode.SURVIVAL,
+        timeLimit = 30, // 1 phút (60 giây) - sống sót hết thời gian là thắng
         failConditions = listOf(
-            FailCondition.PLAYER_DEATH,
-            FailCondition.TIME_OVER
+            FailCondition.PLAYER_DEATH
         ),
-        description = "Đánh bại tất cả kẻ địch và boss trong 5 phút",
-        bonusTimeTarget = 240, // Bonus nếu hoàn thành trong 4 phút
+        description = "Sống sót trong 1 phút để chiến thắng",
+        bonusTimeTarget = null, // Không có bonus time vì đây là survival
         bonusNoHitTarget = true
     )
     
