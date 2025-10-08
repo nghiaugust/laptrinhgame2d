@@ -30,8 +30,6 @@ class LevelVictoryDialog(
     fun show() {
         dialog = Dialog(context).apply {
             setCancelable(false)
-
-            // Root container - RelativeLayout như XML
             val rootLayout = RelativeLayout(context).apply {
                 layoutParams = ViewGroup.LayoutParams(
                     ViewGroup.LayoutParams.MATCH_PARENT,
@@ -40,7 +38,6 @@ class LevelVictoryDialog(
                 setBackgroundColor(Color.parseColor("#CC000000"))
             }
 
-            // ScrollView để có thể cuộn
             val scrollView = ScrollView(context).apply {
                 layoutParams = RelativeLayout.LayoutParams(
                     RelativeLayout.LayoutParams.WRAP_CONTENT,
@@ -51,16 +48,13 @@ class LevelVictoryDialog(
                 isFillViewport = true
             }
 
-            // Main content container
             val mainContainer = LinearLayout(context).apply {
                 orientation = LinearLayout.VERTICAL
                 layoutParams = ViewGroup.LayoutParams(
-                    dpToPx(320),  // 320dp width như XML
+                    dpToPx(320),
                     ViewGroup.LayoutParams.WRAP_CONTENT
                 )
                 setPadding(dpToPx(16), dpToPx(16), dpToPx(16), dpToPx(16))
-
-                // Background giống XML
                 val bgDrawable = GradientDrawable().apply {
                     colors = intArrayOf(
                         Color.parseColor("#2C3E50"),
@@ -74,7 +68,6 @@ class LevelVictoryDialog(
                 elevation = dpToPx(16).toFloat()
             }
 
-            // Title TextView
             val titleText = TextView(context).apply {
                 text = "${currentLevel.displayName} Complete!"
                 textSize = 24f
@@ -82,7 +75,6 @@ class LevelVictoryDialog(
                 gravity = Gravity.CENTER
                 typeface = Typeface.DEFAULT_BOLD
                 setShadowLayer(4f, 2f, 2f, Color.BLACK)
-
                 layoutParams = LinearLayout.LayoutParams(
                     LinearLayout.LayoutParams.WRAP_CONTENT,
                     LinearLayout.LayoutParams.WRAP_CONTENT
@@ -93,7 +85,6 @@ class LevelVictoryDialog(
             }
             mainContainer.addView(titleText)
 
-            // Stats container
             val statsContainer = LinearLayout(context).apply {
                 orientation = LinearLayout.VERTICAL
                 layoutParams = LinearLayout.LayoutParams(
@@ -106,7 +97,6 @@ class LevelVictoryDialog(
                 setBackgroundColor(Color.parseColor("#34495E"))
             }
 
-            // Time stat
             val timeText = TextView(context).apply {
                 text = "⏱ Time: ${victoryRecord.getFormattedTime()}"
                 textSize = 16f
@@ -122,8 +112,7 @@ class LevelVictoryDialog(
                 }
             }
             statsContainer.addView(timeText)
-            
-            // Score stat (ĐIỂM CHÍNH)
+
             val scoreText = TextView(context).apply {
                 text = "⭐ Score: ${victoryRecord.totalScore}"
                 textSize = 20f
@@ -140,8 +129,7 @@ class LevelVictoryDialog(
                 }
             }
             statsContainer.addView(scoreText)
-            
-            // Bonus details (nếu có bonus)
+
             if (victoryRecord.bonusScore > 0) {
                 val bonusDetailsContainer = LinearLayout(context).apply {
                     orientation = LinearLayout.VERTICAL
@@ -152,15 +140,12 @@ class LevelVictoryDialog(
                         setMargins(dpToPx(10), 0, dpToPx(10), dpToPx(8))
                     }
                     setPadding(dpToPx(8), dpToPx(6), dpToPx(8), dpToPx(6))
-                    
                     val bgDrawable = GradientDrawable().apply {
                         setColor(Color.parseColor("#27AE60"))
                         cornerRadius = dpToPx(8).toFloat()
                     }
                     background = bgDrawable
                 }
-                
-                // Bonus header
                 val bonusHeader = TextView(context).apply {
                     text = "🎁 BONUS: +${victoryRecord.bonusScore}"
                     textSize = 14f
@@ -176,8 +161,7 @@ class LevelVictoryDialog(
                     }
                 }
                 bonusDetailsContainer.addView(bonusHeader)
-                
-                // Individual bonus achievements
+
                 if (victoryRecord.achievedTimeBonus) {
                     val timeBonusText = TextView(context).apply {
                         text = "✓ Speed Bonus: +1000"
@@ -194,7 +178,7 @@ class LevelVictoryDialog(
                     }
                     bonusDetailsContainer.addView(timeBonusText)
                 }
-                
+
                 if (victoryRecord.achievedNoHitBonus) {
                     val flawlessPoints = victoryRecord.flawlessScore
                     val noHitBonusText = TextView(context).apply {
@@ -212,7 +196,7 @@ class LevelVictoryDialog(
                     }
                     bonusDetailsContainer.addView(noHitBonusText)
                 }
-                
+
                 if (victoryRecord.achievedComboBonus) {
                     val comboBonusText = TextView(context).apply {
                         text = "✓ Combo Master: +500"
@@ -228,11 +212,10 @@ class LevelVictoryDialog(
                     }
                     bonusDetailsContainer.addView(comboBonusText)
                 }
-                
+
                 statsContainer.addView(bonusDetailsContainer)
             }
 
-            // Hero stat
             val heroText = TextView(context).apply {
                 text = "⚔️ Hero: ${victoryRecord.characterType}"
                 textSize = 13f
@@ -248,7 +231,6 @@ class LevelVictoryDialog(
             }
             statsContainer.addView(heroText)
 
-            // Enemies stat
             val enemiesText = TextView(context).apply {
                 text = "💀 Enemies Defeated: ${victoryRecord.enemiesKilled}"
                 textSize = 13f
@@ -265,7 +247,6 @@ class LevelVictoryDialog(
 
             mainContainer.addView(statsContainer)
 
-            // Next Level Button
             val nextLevelBtn = createXMLStyleButton(
                 "➤ NEXT LEVEL",
                 Color.parseColor("#E74C3C"),
@@ -277,7 +258,6 @@ class LevelVictoryDialog(
             }
             mainContainer.addView(nextLevelBtn)
 
-            // View History Button
             val historyBtn = createXMLStyleButton(
                 "VIEW HISTORY",
                 Color.parseColor("#3498DB"),
@@ -289,7 +269,6 @@ class LevelVictoryDialog(
             }
             mainContainer.addView(historyBtn)
 
-            // Play Again Button
             val playAgainBtn = createXMLStyleButton(
                 "REPLAY LEVEL",
                 Color.parseColor("#F39C12"),
@@ -301,7 +280,6 @@ class LevelVictoryDialog(
             }
             mainContainer.addView(playAgainBtn)
 
-            // Main Menu Button
             val mainMenuBtn = createXMLStyleButton(
                 "MAIN MENU",
                 Color.parseColor("#95A5A6"),
@@ -311,7 +289,6 @@ class LevelVictoryDialog(
                 dismiss()
                 onMainMenu()
             }
-            // Remove bottom margin for last button
             val params = mainMenuBtn.layoutParams as LinearLayout.LayoutParams
             params.setMargins(0, 0, 0, 0)
             mainMenuBtn.layoutParams = params
@@ -322,13 +299,10 @@ class LevelVictoryDialog(
 
             setContentView(rootLayout)
             window?.setBackgroundDrawable(ColorDrawable(Color.TRANSPARENT))
-
-            // Set dialog size
             window?.setLayout(
                 ViewGroup.LayoutParams.MATCH_PARENT,
                 ViewGroup.LayoutParams.MATCH_PARENT
             )
-
             show()
         }
     }
@@ -345,28 +319,23 @@ class LevelVictoryDialog(
             this.textSize = textSize
             setTextColor(Color.WHITE)
             typeface = Typeface.DEFAULT_BOLD
-
-            // Create button background với rounded corners
             val buttonBg = GradientDrawable().apply {
                 setColor(backgroundColor)
                 cornerRadius = dpToPx(8).toFloat()
                 setStroke(dpToPx(1), darkenColor(backgroundColor))
             }
             background = buttonBg
-
             layoutParams = LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT,
                 height
             ).apply {
                 setMargins(0, 0, 0, dpToPx(8))
             }
-
             elevation = dpToPx(4).toFloat()
             setOnClickListener { onClick() }
         }
     }
 
-    // Utility functions
     private fun dpToPx(dp: Int): Int {
         return (dp * context.resources.displayMetrics.density).toInt()
     }
