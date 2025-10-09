@@ -13,6 +13,8 @@ object ItemDropConfig {
         BLACK_HOLE_SKILL,   // Skill hố đen
         LASER_BEAM_SKILL,   // Skill laser beam
         SHIELD_SKILL,       // Skill khiên bảo vệ
+        BOMB_SKILL,         // Skill bom nổ
+        LIGHTNING_SKILL,    // Skill tia sét
         // Có thể mở rộng thêm: MANA_POTION, COIN, POWER_UP, etc.
     }
     
@@ -99,24 +101,38 @@ object ItemDropConfig {
     }
     
     /**
-     * Kiểm tra xem có rơi skill Black Hole không (50% tỉ lệ)
+     * Kiểm tra xem có rơi skill Black Hole không (30% tỉ lệ)
      */
     fun shouldDropBlackHoleSkill(): Boolean {
-        return Math.random() < 0.5  // 50%
+        return Math.random() < 0.3  // 30%
     }
     
     /**
-     * Kiểm tra xem có rơi skill Laser Beam không (50% tỉ lệ)
+     * Kiểm tra xem có rơi skill Laser Beam không (30% tỉ lệ)
      */
     fun shouldDropLaserBeamSkill(): Boolean {
-        return Math.random() < 0.5  // 50%
+        return Math.random() < 0.3  // 30%
     }
     
     /**
-     * Kiểm tra xem có rơi skill Shield không (50% tỉ lệ)
+     * Kiểm tra xem có rơi skill Shield không (30% tỉ lệ)
      */
     fun shouldDropShieldSkill(): Boolean {
-        return Math.random() < 0.5  // 50%
+        return Math.random() < 0.3  // 30%
+    }
+    
+    /**
+     * Kiểm tra xem có rơi skill Bomb không (30% tỉ lệ)
+     */
+    fun shouldDropBombSkill(): Boolean {
+        return Math.random() < 0.3  // 30%
+    }
+    
+    /**
+     * Kiểm tra xem có rơi skill Lightning không (30% tỉ lệ)
+     */
+    fun shouldDropLightningSkill(): Boolean {
+        return Math.random() < 0.3  // 30%
     }
     
     /**

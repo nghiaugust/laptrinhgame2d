@@ -99,6 +99,7 @@ class MainActivity : AppCompatActivity() {
     // Chơi lại màn hiện tại
     private fun replayLevel() {
         if (lastLevel == null) return
+        GameView.resetPersistedSkills()  // Reset skills khi replay
         mapType = lastLevel!!.mapType
         gameView = GameView(this, characterType, mapType)
         setContentView(gameView)
@@ -106,6 +107,7 @@ class MainActivity : AppCompatActivity() {
 
     // Về menu chính
     private fun goToMainMenu() {
+        GameView.resetPersistedSkills()  // Reset skills khi về menu
         val intent = Intent(this, MainMenuActivity::class.java)
         startActivity(intent)
         finish()

@@ -31,6 +31,12 @@ import com.example.laptrinhgame2d.items.skills.LaserBeamSkillButton
 import com.example.laptrinhgame2d.items.skills.ShieldSkillItem
 import com.example.laptrinhgame2d.items.skills.ShieldEffect
 import com.example.laptrinhgame2d.items.skills.ShieldSkillButton
+import com.example.laptrinhgame2d.items.skills.BombSkillItem
+import com.example.laptrinhgame2d.items.skills.BombEffect
+import com.example.laptrinhgame2d.items.skills.BombSkillButton
+import com.example.laptrinhgame2d.items.skills.LightningSkillItem
+import com.example.laptrinhgame2d.items.skills.LightningEffect
+import com.example.laptrinhgame2d.items.skills.LightningSkillButton
 import com.example.laptrinhgame2d.items.skills.PickupButton
 import com.example.laptrinhgame2d.maps.DesertMap
 import com.example.laptrinhgame2d.maps.GrasslandMap
@@ -45,6 +51,57 @@ class GameView(
     private val characterType: String = "Fighter",
     private val mapType: Int = 1
 ) : SurfaceView(context), SurfaceHolder.Callback {
+
+    companion object {
+        // Lưu trạng thái skills globally để truyền qua các level
+        private var persistedBlackHoleSkill = false
+        private var persistedLaserBeamSkill = false
+        private var persistedShieldSkill = false
+        private var persistedBombSkill = false
+        private var persistedLightningSkill = false
+        
+        // Lưu HP của hero qua các màn
+        private var persistedFighterHP: Int? = null
+        private var persistedSamuraiArcherHP: Int? = null
+        private var persistedSamuraiCommanderHP: Int? = null
+        
+        /**
+         * Reset toàn bộ skills đã lưu (gọi khi game over hoặc về main menu)
+         */
+        fun resetPersistedSkills() {
+            persistedBlackHoleSkill = false
+            persistedLaserBeamSkill = false
+            persistedShieldSkill = false
+            persistedBombSkill = false
+            persistedLightningSkill = false
+        }
+        
+        // HP Functions
+        fun saveFighterHP(hp: Int) {
+            persistedFighterHP = hp
+        }
+        
+        fun getSavedFighterHP(): Int? = persistedFighterHP
+        
+        fun saveSamuraiArcherHP(hp: Int) {
+            persistedSamuraiArcherHP = hp
+        }
+        
+        fun getSavedSamuraiArcherHP(): Int? = persistedSamuraiArcherHP
+        
+        fun saveSamuraiCommanderHP(hp: Int) {
+            persistedSamuraiCommanderHP = hp
+        }
+        
+        fun getSavedSamuraiCommanderHP(): Int? = persistedSamuraiCommanderHP
+        
+        // Reset tất cả HP khi bắt đầu từ màn 1
+        fun resetAllHP() {
+            persistedFighterHP = null
+            persistedSamuraiArcherHP = null
+            persistedSamuraiCommanderHP = null
+        }
+    }
 
     private var gameThread: GameThread? = null
     private val gameContext: Context = context
@@ -97,6 +154,25 @@ class GameView(
     private var shieldEffect: ShieldEffect? = null
     private var hasShieldSkill = false
     private var shieldSkillButton: ShieldSkillButton? = null
+
+    // Bomb Skill
+    private val bombSkillItems = mutableListOf<BombSkillItem>()
+    private val bombEffects = mutableListOf<BombEffect>()
+    private var hasBombSkill = false
+    private var bombSkillButton: BombSkillButton? = null
+
+    // Lightning Skill
+    private val lightningSkillItems = mutableListOf<LightningSkillItem>()
+    private val lightningEffects = mutableListOf<LightningEffect>()
+    private var hasLightningSkill = false
+    private var lightningSkillButton: LightningSkillButton? = null
+
+    // Skill State Persistence (lưu trạng thái kỹ năng qua các level)
+    private var savedBlackHoleSkill = false
+    private var savedLaserBeamSkill = false
+    private var savedShieldSkill = false
+    private var savedBombSkill = false
+    private var savedLightningSkill = false
 
     // Camera
     private var cameraX = 0f
@@ -182,6 +258,9 @@ class GameView(
         // Khởi tạo pickup button (ẩn mặc định)
         pickupButton = PickupButton(0f, 0f)
         pickupButton.hide()
+        
+        // CHÚ Ý: Không restore skills ở đây vì width/height chưa được set
+        // Skills sẽ được restore trong surfaceCreated()
 
         when (characterType) {
             "Fighter" -> {
@@ -342,6 +421,9 @@ class GameView(
             3 -> volcanoMap?.groundY ?: (screenHeight * 0.75f)
             else -> grasslandMap?.groundY ?: (screenHeight * 0.75f)
         }
+        
+        // Khôi phục skills từ persisted state SAU KHI width/height đã được set
+        restorePersistedSkills()
 
         when (characterType) {
             "Fighter" -> {
@@ -498,6 +580,24 @@ class GameView(
                     }
                     return true
                 }
+                
+                // Bomb Skill button
+                if (hasBombSkill && bombSkillButton?.isPressed(x, y) == true) {
+                    if (bombSkillButton?.isReady() == true) {
+                        bombSkillButton?.onTouch(pointerId)
+                        castBomb()
+                    }
+                    return true
+                }
+                
+                // Lightning Skill button
+                if (hasLightningSkill && lightningSkillButton?.isPressed(x, y) == true) {
+                    if (lightningSkillButton?.isReady() == true) {
+                        lightningSkillButton?.onTouch(pointerId)
+                        castLightning()
+                    }
+                    return true
+                }
 
                 if (attackButton.isPressed(x, y)) {
                     attackButton.onTouch(pointerId)
@@ -626,6 +726,8 @@ class GameView(
                         // SURVIVAL mode: hết thời gian = THẮNG
                         if (config.gameMode == GameModeConfig.GameMode.SURVIVAL) {
                             isVictory = true
+                            // Lưu skills NGAY khi victory để tránh nhặt thêm skills trong lúc delay
+                            saveSkillsToPersist()
                             mainHandler.postDelayed({
                                 showVictory()
                             }, 500)
@@ -771,6 +873,8 @@ class GameView(
 
                 if (allEnemiesDead) {
                     isVictory = true
+                    // Lưu skills NGAY khi victory để tránh nhặt thêm skills
+                    saveSkillsToPersist()
                     showVictory()
                 }
             }
@@ -1140,6 +1244,14 @@ class GameView(
             skillItem.draw(canvas)
         }
         
+        for (skillItem in bombSkillItems) {
+            skillItem.draw(canvas)
+        }
+        
+        for (skillItem in lightningSkillItems) {
+            skillItem.draw(canvas)
+        }
+        
         // ===== VẼ BLACK HOLE EFFECTS =====
         for (effect in blackHoleEffects) {
             effect.draw(canvas)
@@ -1152,6 +1264,16 @@ class GameView(
         
         // ===== VẼ SHIELD EFFECT =====
         shieldEffect?.draw(canvas)
+        
+        // ===== VẼ BOMB EFFECTS =====
+        for (effect in bombEffects) {
+            effect.draw(canvas)
+        }
+        
+        // ===== VẼ LIGHTNING EFFECTS =====
+        for (effect in lightningEffects) {
+            effect.draw(canvas)
+        }
 
         fighter?.draw(canvas)
         samuraiArcher?.draw(canvas)
@@ -1312,6 +1434,8 @@ class GameView(
         blackHoleSkillButton?.draw(canvas)
         laserBeamSkillButton?.draw(canvas)
         shieldSkillButton?.draw(canvas)
+        bombSkillButton?.draw(canvas)
+        lightningSkillButton?.draw(canvas)
     }
 
     private fun showGameOver() {
@@ -1440,6 +1564,7 @@ class GameView(
     }
 
     private fun showLevelVictoryDialog(victoryRecord: VictoryRecord) {
+        // Skills đã được lưu khi isVictory = true, không cần lưu lại ở đây
         soundManager.pauseBackgroundMusic()
         mainHandler.post {
             (context as? MainActivity)?.showLevelVictoryDialog(victoryRecord, currentLevel)
@@ -1448,6 +1573,15 @@ class GameView(
 
     // ===== RESET GAME VỚI WAVE SYSTEM =====
     private fun resetGame() {
+        resetGame(clearSkills = true)  // Reset hoàn toàn, xóa cả skills đã nhặt
+        resetPersistedSkills()  // Xóa luôn persisted skills
+    }
+    
+    /**
+     * Reset game với tùy chọn giữ lại skills
+     * @param clearSkills true = xóa hết skills (game over/restart), false = giữ skills (next level)
+     */
+    private fun resetGame(clearSkills: Boolean = true) {
         isGameOver = false
         isVictory = false
 
@@ -1473,6 +1607,26 @@ class GameView(
         laserBeamEffects.clear()
         shieldSkillItems.clear()
         shieldEffect = null
+        bombSkillItems.forEach { it.cleanup() }
+        bombSkillItems.clear()
+        bombEffects.forEach { it.cleanup() }
+        bombEffects.clear()
+        lightningSkillItems.forEach { it.cleanup() }
+        lightningSkillItems.clear()
+        lightningEffects.forEach { it.cleanup() }
+        lightningEffects.clear()
+        
+        if (clearSkills) {
+            // Reset hoàn toàn - xóa trạng thái skills đã lưu
+            savedBlackHoleSkill = false
+            savedLaserBeamSkill = false
+            savedShieldSkill = false
+            savedBombSkill = false
+            savedLightningSkill = false
+        } else {
+            // Giữ lại skills - khôi phục từ trạng thái đã lưu
+            restoreSkills()
+        }
         pickupButton.hide()
 
         // Reset wave system
@@ -1493,6 +1647,81 @@ class GameView(
         }
 
         gameStartTime = System.currentTimeMillis()
+    }
+    
+    /**
+     * Lưu trạng thái các kỹ năng đã nhặt vào companion object (persist qua các level)
+     * CHỈ lưu các skills còn available (chưa dùng)
+     */
+    private fun saveSkillsToPersist() {
+        // Chỉ lưu skills nếu button còn ready (chưa dùng)
+        persistedBlackHoleSkill = hasBlackHoleSkill && (blackHoleSkillButton?.isReady() == true)
+        persistedLaserBeamSkill = hasLaserBeamSkill && (laserBeamSkillButton?.isReady() == true)
+        persistedShieldSkill = hasShieldSkill && (shieldSkillButton?.isReady() == true)
+        persistedBombSkill = hasBombSkill && (bombSkillButton?.isReady() == true)
+        persistedLightningSkill = hasLightningSkill && (lightningSkillButton?.isReady() == true)
+    }
+    
+    /**
+     * Khôi phục các kỹ năng từ companion object (khi tạo GameView mới cho level mới)
+     */
+    private fun restorePersistedSkills() {
+        if (persistedBlackHoleSkill) {
+            unlockBlackHoleSkill()
+        }
+        if (persistedLaserBeamSkill) {
+            unlockLaserBeamSkill()
+        }
+        if (persistedShieldSkill) {
+            unlockShieldSkill()
+        }
+        if (persistedBombSkill) {
+            unlockBombSkill()
+        }
+        if (persistedLightningSkill) {
+            unlockLightningSkill()
+        }
+    }
+    
+    /**
+     * Lưu trạng thái các kỹ năng đã nhặt (gọi trước khi chuyển level)
+     */
+    private fun saveSkills() {
+        savedBlackHoleSkill = hasBlackHoleSkill
+        savedLaserBeamSkill = hasLaserBeamSkill
+        savedShieldSkill = hasShieldSkill
+        savedBombSkill = hasBombSkill
+        savedLightningSkill = hasLightningSkill
+    }
+    
+    /**
+     * Khôi phục các kỹ năng đã lưu (gọi khi bắt đầu level mới)
+     */
+    private fun restoreSkills() {
+        // Khôi phục Black Hole skill
+        if (savedBlackHoleSkill) {
+            unlockBlackHoleSkill()
+        }
+        
+        // Khôi phục Laser Beam skill
+        if (savedLaserBeamSkill) {
+            unlockLaserBeamSkill()
+        }
+        
+        // Khôi phục Shield skill
+        if (savedShieldSkill) {
+            unlockShieldSkill()
+        }
+        
+        // Khôi phục Bomb skill
+        if (savedBombSkill) {
+            unlockBombSkill()
+        }
+        
+        // Khôi phục Lightning skill
+        if (savedLightningSkill) {
+            unlockLightningSkill()
+        }
     }
 
     /**
@@ -1596,6 +1825,16 @@ class GameView(
         if (ItemDropConfig.shouldDropShieldSkill()) {
             shieldSkillItems.add(ShieldSkillItem(gameContext, x, groundY - 150f))
         }
+        
+        // Kiểm tra 50% rơi skill Bomb
+        if (ItemDropConfig.shouldDropBombSkill()) {
+            bombSkillItems.add(BombSkillItem(gameContext, x, groundY - 150f))
+        }
+        
+        // Kiểm tra 50% rơi skill Lightning
+        if (ItemDropConfig.shouldDropLightningSkill()) {
+            lightningSkillItems.add(LightningSkillItem(gameContext, x, groundY - 150f))
+        }
     }
 
     /**
@@ -1619,6 +1858,14 @@ class GameView(
         // Update shield skill items
         shieldSkillItems.forEach { it.update() }
         shieldSkillItems.removeAll { it.shouldBeRemoved() }
+        
+        // Update bomb skill items
+        bombSkillItems.forEach { it.update() }
+        bombSkillItems.removeAll { it.shouldBeRemoved() }
+        
+        // Update lightning skill items
+        lightningSkillItems.forEach { it.update() }
+        lightningSkillItems.removeAll { it.shouldBeRemoved() }
         
         // Update black hole effects
         blackHoleEffects.forEach { effect ->
@@ -1651,11 +1898,33 @@ class GameView(
             }
         }
         
+        // Update bomb effects
+        bombEffects.forEach { effect ->
+            effect.update()
+            
+            if (effect.isActive()) {
+                applyBombEffects(effect)
+            }
+        }
+        bombEffects.removeAll { !it.isActive() }
+        
+        // Update lightning effects
+        lightningEffects.forEach { effect ->
+            effect.update()
+            
+            if (effect.isActive()) {
+                applyLightningEffects(effect)
+            }
+        }
+        lightningEffects.removeAll { !it.isActive() }
+        
         // Update buttons
         pickupButton.update()
         blackHoleSkillButton?.update()
         laserBeamSkillButton?.update()
         shieldSkillButton?.update()
+        bombSkillButton?.update()
+        lightningSkillButton?.update()
     }
 
     /**
@@ -1711,6 +1980,24 @@ class GameView(
             }
         }
         
+        // Tìm bomb skill item gần nhất
+        var nearestBombSkill: BombSkillItem? = null
+        for (skill in bombSkillItems) {
+            if (!skill.isPickedUp() && skill.isCollidingWith(playerX, playerY, pickupRange)) {
+                nearestBombSkill = skill
+                break
+            }
+        }
+        
+        // Tìm lightning skill item gần nhất
+        var nearestLightningSkill: LightningSkillItem? = null
+        for (skill in lightningSkillItems) {
+            if (!skill.isPickedUp() && skill.isCollidingWith(playerX, playerY, pickupRange)) {
+                nearestLightningSkill = skill
+                break
+            }
+        }
+        
         // Ưu tiên hiển thị nút cho skill gần nhất
         if (nearestSkill != null) {
             // Hiện nút nhặt tại vị trí skill (theo camera)
@@ -1727,6 +2014,16 @@ class GameView(
             val buttonX = nearestShieldSkill.getX() - cameraX
             val buttonY = nearestShieldSkill.getY() - cameraY - 100f
             pickupButton.show(buttonX, buttonY)
+        } else if (nearestBombSkill != null) {
+            // Hiện nút nhặt tại vị trí bomb skill
+            val buttonX = nearestBombSkill.getX() - cameraX
+            val buttonY = nearestBombSkill.getY() - cameraY - 100f
+            pickupButton.show(buttonX, buttonY)
+        } else if (nearestLightningSkill != null) {
+            // Hiện nút nhặt tại vị trí lightning skill
+            val buttonX = nearestLightningSkill.getX() - cameraX
+            val buttonY = nearestLightningSkill.getY() - cameraY - 100f
+            pickupButton.show(buttonX, buttonY)
         } else {
             pickupButton.hide()
         }
@@ -1736,6 +2033,9 @@ class GameView(
      * Thử nhặt skill khi bấm nút
      */
     private fun tryPickupSkill() {
+        // Không cho nhặt skill nếu đã victory (để tránh nhặt thêm skills sau khi đã lưu)
+        if (isVictory) return
+        
         val playerX = fighter?.getX() ?: samuraiArcher?.getX() ?: samuraiCommander?.getX() ?: 0f
         val playerY = fighter?.y ?: samuraiArcher?.y ?: samuraiCommander?.y ?: 0f
         val pickupRange = 150f
@@ -1765,6 +2065,26 @@ class GameView(
             if (!skill.isPickedUp() && skill.isCollidingWith(playerX, playerY, pickupRange)) {
                 skill.pickup()
                 unlockShieldSkill()
+                pickupButton.hide()
+                return
+            }
+        }
+        
+        // Thử nhặt Bomb skill
+        for (skill in bombSkillItems) {
+            if (!skill.isPickedUp() && skill.isCollidingWith(playerX, playerY, pickupRange)) {
+                skill.pickup()
+                unlockBombSkill()
+                pickupButton.hide()
+                return
+            }
+        }
+        
+        // Thử nhặt Lightning skill
+        for (skill in lightningSkillItems) {
+            if (!skill.isPickedUp() && skill.isCollidingWith(playerX, playerY, pickupRange)) {
+                skill.pickup()
+                unlockLightningSkill()
                 pickupButton.hide()
                 return
             }
@@ -2116,6 +2436,242 @@ class GameView(
     }
     
     /**
+     * Áp dụng Bomb damage - 50 sát thương ban đầu + 5 sát thương mỗi 0.5s trong 3s
+     */
+    private fun applyBombEffects(effect: BombEffect) {
+        val explosionX = effect.getX()
+        val explosionY = effect.getY()
+        val damageRange = 350f
+        
+        // Lấy initial damage (50 damage, chỉ deal 1 lần)
+        val initialDamage = effect.getInitialDamage()
+        if (initialDamage > 0) {
+            // Áp dụng initial damage lên tất cả enemies trong range
+            skeletons.forEach { skeleton ->
+                if (!skeleton.isDead() && !effect.hasHitEnemy(skeleton)) {
+                    val distance = kotlin.math.sqrt(
+                        (skeleton.getX() - explosionX) * (skeleton.getX() - explosionX) +
+                        (skeleton.y - explosionY) * (skeleton.y - explosionY)
+                    )
+                    if (distance <= damageRange) {
+                        damageSkeletonAndCheck(skeleton, initialDamage)
+                        effect.addHitEnemy(skeleton)
+                    }
+                }
+            }
+            
+            demons.forEach { demon ->
+                if (!demon.isDead() && !effect.hasHitEnemy(demon)) {
+                    val distance = kotlin.math.sqrt(
+                        (demon.getX() - explosionX) * (demon.getX() - explosionX) +
+                        (demon.y - explosionY) * (demon.y - explosionY)
+                    )
+                    if (distance <= damageRange) {
+                        damageDemonAndCheck(demon, initialDamage)
+                        effect.addHitEnemy(demon)
+                    }
+                }
+            }
+            
+            medusas.forEach { medusa ->
+                if (!medusa.isDead() && !effect.hasHitEnemy(medusa)) {
+                    val distance = kotlin.math.sqrt(
+                        (medusa.getX() - explosionX) * (medusa.getX() - explosionX) +
+                        (medusa.y - explosionY) * (medusa.y - explosionY)
+                    )
+                    if (distance <= damageRange) {
+                        damageMedusaAndCheck(medusa, initialDamage)
+                        effect.addHitEnemy(medusa)
+                    }
+                }
+            }
+            
+            jinns.forEach { jinn ->
+                if (!jinn.isDead() && !effect.hasHitEnemy(jinn)) {
+                    val distance = kotlin.math.sqrt(
+                        (jinn.getX() - explosionX) * (jinn.getX() - explosionX) +
+                        (jinn.y - explosionY) * (jinn.y - explosionY)
+                    )
+                    if (distance <= damageRange) {
+                        damageJinnAndCheck(jinn, initialDamage)
+                        effect.addHitEnemy(jinn)
+                    }
+                }
+            }
+            
+            smallDragons.forEach { dragon ->
+                if (!dragon.isDead() && !effect.hasHitEnemy(dragon)) {
+                    val distance = kotlin.math.sqrt(
+                        (dragon.getX() - explosionX) * (dragon.getX() - explosionX) +
+                        (dragon.y - explosionY) * (dragon.y - explosionY)
+                    )
+                    if (distance <= damageRange) {
+                        damageSmallDragonAndCheck(dragon, initialDamage)
+                        effect.addHitEnemy(dragon)
+                    }
+                }
+            }
+            
+            dragons.forEach { dragon ->
+                if (!dragon.isDead() && !effect.hasHitEnemy(dragon)) {
+                    val distance = kotlin.math.sqrt(
+                        (dragon.getX() - explosionX) * (dragon.getX() - explosionX) +
+                        (dragon.y - explosionY) * (dragon.y - explosionY)
+                    )
+                    if (distance <= damageRange) {
+                        damageDragonAndCheck(dragon, initialDamage)
+                        effect.addHitEnemy(dragon)
+                    }
+                }
+            }
+        }
+        
+        // Áp dụng DOT damage (5 damage mỗi 0.5s) cho các enemy đã bị hit
+        if (effect.shouldDealDotDamage()) {
+            val dotDamage = effect.getDotDamage()
+            
+            skeletons.forEach { skeleton ->
+                if (!skeleton.isDead() && effect.hasHitEnemy(skeleton)) {
+                    val distance = kotlin.math.sqrt(
+                        (skeleton.getX() - explosionX) * (skeleton.getX() - explosionX) +
+                        (skeleton.y - explosionY) * (skeleton.y - explosionY)
+                    )
+                    if (distance <= damageRange) {
+                        damageSkeletonAndCheck(skeleton, dotDamage)
+                    }
+                }
+            }
+            
+            demons.forEach { demon ->
+                if (!demon.isDead() && effect.hasHitEnemy(demon)) {
+                    val distance = kotlin.math.sqrt(
+                        (demon.getX() - explosionX) * (demon.getX() - explosionX) +
+                        (demon.y - explosionY) * (demon.y - explosionY)
+                    )
+                    if (distance <= damageRange) {
+                        damageDemonAndCheck(demon, dotDamage)
+                    }
+                }
+            }
+            
+            medusas.forEach { medusa ->
+                if (!medusa.isDead() && effect.hasHitEnemy(medusa)) {
+                    val distance = kotlin.math.sqrt(
+                        (medusa.getX() - explosionX) * (medusa.getX() - explosionX) +
+                        (medusa.y - explosionY) * (medusa.y - explosionY)
+                    )
+                    if (distance <= damageRange) {
+                        damageMedusaAndCheck(medusa, dotDamage)
+                    }
+                }
+            }
+            
+            jinns.forEach { jinn ->
+                if (!jinn.isDead() && effect.hasHitEnemy(jinn)) {
+                    val distance = kotlin.math.sqrt(
+                        (jinn.getX() - explosionX) * (jinn.getX() - explosionX) +
+                        (jinn.y - explosionY) * (jinn.y - explosionY)
+                    )
+                    if (distance <= damageRange) {
+                        damageJinnAndCheck(jinn, dotDamage)
+                    }
+                }
+            }
+            
+            smallDragons.forEach { dragon ->
+                if (!dragon.isDead() && effect.hasHitEnemy(dragon)) {
+                    val distance = kotlin.math.sqrt(
+                        (dragon.getX() - explosionX) * (dragon.getX() - explosionX) +
+                        (dragon.y - explosionY) * (dragon.y - explosionY)
+                    )
+                    if (distance <= damageRange) {
+                        damageSmallDragonAndCheck(dragon, dotDamage)
+                    }
+                }
+            }
+            
+            dragons.forEach { dragon ->
+                if (!dragon.isDead() && effect.hasHitEnemy(dragon)) {
+                    val distance = kotlin.math.sqrt(
+                        (dragon.getX() - explosionX) * (dragon.getX() - explosionX) +
+                        (dragon.y - explosionY) * (dragon.y - explosionY)
+                    )
+                    if (distance <= damageRange) {
+                        damageDragonAndCheck(dragon, dotDamage)
+                    }
+                }
+            }
+        }
+    }
+    
+    /**
+     * Áp dụng Lightning damage - 3 đợt đánh cách nhau 0.5s, mỗi đợt 30 damage
+     */
+    private fun applyLightningEffects(effect: LightningEffect) {
+        if (!effect.shouldDealDamage()) return
+        
+        val damage = effect.getDamage()
+        val targetEnemy = effect.getTargetEnemy()
+        
+        // Cập nhật vị trí target nếu quái vẫn sống
+        var enemyStillAlive = false
+        
+        // Kiểm tra và damage skeleton
+        skeletons.forEach { skeleton ->
+            if (targetEnemy == skeleton && !skeleton.isDead()) {
+                effect.updateTargetPosition(skeleton.getX(), skeleton.y)
+                damageSkeletonAndCheck(skeleton, damage)
+                enemyStillAlive = true
+            }
+        }
+        
+        // Kiểm tra và damage demon
+        demons.forEach { demon ->
+            if (targetEnemy == demon && !demon.isDead()) {
+                effect.updateTargetPosition(demon.getX(), demon.y)
+                damageDemonAndCheck(demon, damage)
+                enemyStillAlive = true
+            }
+        }
+        
+        // Kiểm tra và damage medusa
+        medusas.forEach { medusa ->
+            if (targetEnemy == medusa && !medusa.isDead()) {
+                effect.updateTargetPosition(medusa.getX(), medusa.y)
+                damageMedusaAndCheck(medusa, damage)
+                enemyStillAlive = true
+            }
+        }
+        
+        // Kiểm tra và damage jinn
+        jinns.forEach { jinn ->
+            if (targetEnemy == jinn && !jinn.isDead()) {
+                effect.updateTargetPosition(jinn.getX(), jinn.y)
+                damageJinnAndCheck(jinn, damage)
+                enemyStillAlive = true
+            }
+        }
+        
+        // Kiểm tra và damage small dragon
+        smallDragons.forEach { dragon ->
+            if (targetEnemy == dragon && !dragon.isDead()) {
+                effect.updateTargetPosition(dragon.getX(), dragon.y)
+                damageSmallDragonAndCheck(dragon, damage)
+                enemyStillAlive = true
+            }
+        }
+        
+        // Kiểm tra và damage dragon
+        dragons.forEach { dragon ->
+            if (targetEnemy == dragon && !dragon.isDead()) {
+                effect.updateTargetPosition(dragon.getX(), dragon.y)
+                damageDragonAndCheck(dragon, damage)
+                enemyStillAlive = true
+            }
+        }
+    }
+    
+    /**
      * Unlock Shield Skill
      */
     private fun unlockShieldSkill() {
@@ -2133,6 +2689,40 @@ class GameView(
     }
     
     /**
+     * Unlock Bomb Skill
+     */
+    private fun unlockBombSkill() {
+        // Luôn tạo button mới mỗi khi nhặt (cho phép dùng 1 lần mỗi lần nhặt)
+        hasBombSkill = true
+        
+        val screenWidth = width.toFloat()
+        val screenHeight = height.toFloat()
+        // Đặt bên phải Shield button
+        bombSkillButton = BombSkillButton(
+            gameContext,
+            640f,  // Bên phải Shield
+            screenHeight - 350f
+        )
+    }
+    
+    /**
+     * Unlock Lightning Skill
+     */
+    private fun unlockLightningSkill() {
+        // Luôn tạo button mới mỗi khi nhặt (cho phép dùng 1 lần mỗi lần nhặt)
+        hasLightningSkill = true
+        
+        val screenWidth = width.toFloat()
+        val screenHeight = height.toFloat()
+        // Đặt bên phải Bomb button
+        lightningSkillButton = LightningSkillButton(
+            gameContext,
+            770f,  // Bên phải Bomb
+            screenHeight - 350f
+        )
+    }
+    
+    /**
      * Cast Shield Skill - Tạo khiên bảo vệ quanh nhân vật
      */
     private fun castShield() {
@@ -2144,6 +2734,50 @@ class GameView(
         
         // Đánh dấu skill đã dùng -> Ẩn nút (chỉ dùng 1 lần)
         shieldSkillButton?.markAsUsed()
+    }
+    
+    /**
+     * Cast Bomb Skill - Ném bom ra cách nhân vật 350px theo hướng nhìn
+     */
+    private fun castBomb() {
+        val playerX = fighter?.getX() ?: samuraiArcher?.getX() ?: samuraiCommander?.getX() ?: 0f
+        val playerY = fighter?.y ?: samuraiArcher?.y ?: samuraiCommander?.y ?: 0f
+        val playerFacingRight = fighter?.getFacingRight() ?: samuraiArcher?.getFacingRight() ?: samuraiCommander?.getFacingRight() ?: true
+        
+        // Ném bom ra cách nhân vật 350px theo hướng nhìn
+        val throwDistance = 350f
+        val bombX = playerX + (if (playerFacingRight) throwDistance else -throwDistance)
+        
+        // Tạo bomb effect
+        bombEffects.add(BombEffect(gameContext, bombX, playerY))
+        
+        // Đánh dấu skill đã dùng -> Ẩn nút (chỉ dùng 1 lần)
+        bombSkillButton?.markAsUsed()
+    }
+    
+    /**
+     * Cast Lightning Skill - Gọi tia sét đánh vào quái gần nhất
+     */
+    private fun castLightning() {
+        val playerX = fighter?.getX() ?: samuraiArcher?.getX() ?: samuraiCommander?.getX() ?: 0f
+        val playerY = fighter?.y ?: samuraiArcher?.y ?: samuraiCommander?.y ?: 0f
+        
+        // Tìm quái gần nhất
+        val nearestEnemy = findNearestEnemy(playerX, playerY)
+        
+        if (nearestEnemy != null) {
+            // Tạo lightning effect, vị trí chính xác là đầu quái
+            val lightningEffect = LightningEffect(
+                gameContext,
+                nearestEnemy.x,
+                nearestEnemy.y - 50f  // Điều chỉnh vị trí đầu quái
+            )
+            lightningEffect.setTargetEnemy(nearestEnemy.enemy)
+            lightningEffects.add(lightningEffect)
+            
+            // Đánh dấu skill đã dùng -> Ẩn nút (chỉ dùng 1 lần)
+            lightningSkillButton?.markAsUsed()
+        }
     }
     
     /**
@@ -2170,38 +2804,6 @@ class GameView(
 
     private val handler = android.os.Handler(android.os.Looper.getMainLooper())
     
-    companion object {
-        // Lưu HP của hero qua các màn
-        private var persistedFighterHP: Int? = null
-        private var persistedSamuraiArcherHP: Int? = null
-        private var persistedSamuraiCommanderHP: Int? = null
-        
-        fun saveFighterHP(hp: Int) {
-            persistedFighterHP = hp
-        }
-        
-        fun getSavedFighterHP(): Int? = persistedFighterHP
-        
-        fun saveSamuraiArcherHP(hp: Int) {
-            persistedSamuraiArcherHP = hp
-        }
-        
-        fun getSavedSamuraiArcherHP(): Int? = persistedSamuraiArcherHP
-        
-        fun saveSamuraiCommanderHP(hp: Int) {
-            persistedSamuraiCommanderHP = hp
-        }
-        
-        fun getSavedSamuraiCommanderHP(): Int? = persistedSamuraiCommanderHP
-        
-        // Reset tất cả HP khi bắt đầu từ màn 1
-        fun resetAllHP() {
-            persistedFighterHP = null
-            persistedSamuraiArcherHP = null
-            persistedSamuraiCommanderHP = null
-        }
-    }
-
     fun pauseGame() {
         // Dừng thread game loop
         gameThread?.running = false
