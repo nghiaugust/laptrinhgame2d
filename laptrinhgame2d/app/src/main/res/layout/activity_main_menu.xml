@@ -17,7 +17,7 @@
         android:layout_height="wrap_content"
         android:layout_centerHorizontal="true"
         android:layout_marginTop="30dp"
-        android:text="2D ACTION GAME"
+        android:text="Samurai Legends"
         android:textSize="56sp"
         android:textStyle="bold"
         android:textColor="#FFD700"
@@ -28,17 +28,21 @@
         android:padding="10dp" />
 
     <!-- Start Game Button -->
+    <!-- Start Game Button -->
     <Button
         android:id="@+id/startGameButton"
-        android:layout_width="350dp"
-        android:layout_height="90dp"
-        android:layout_centerInParent="true"
+        android:layout_width="300dp"
+        android:layout_height="60dp"
+        android:layout_below="@id/gameTitle"
+        android:layout_centerHorizontal="true"
+        android:layout_marginTop="40dp"
         android:text="START GAME"
-        android:textSize="32sp"
+        android:textSize="25sp"
         android:textStyle="bold"
         android:textColor="#FFFFFF"
         android:background="@drawable/button_background"
         android:elevation="12dp" />
+
 
     <!-- Version Info -->
     <TextView
