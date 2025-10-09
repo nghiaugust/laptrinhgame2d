@@ -45,6 +45,10 @@ import com.example.laptrinhgame2d.victory.VictoryDialog
 import com.example.laptrinhgame2d.victory.VictoryHistoryActivity
 import com.example.laptrinhgame2d.victory.VictoryManager
 import com.example.laptrinhgame2d.victory.VictoryRecord
+import com.example.laptrinhgame2d.items.MagicPotion
+import com.example.laptrinhgame2d.items.SpeedFlame
+import com.example.laptrinhgame2d.items.TemporaryEffectManager
+import com.example.laptrinhgame2d.items.DamageBoost
 
 class GameView(
     context: Context,
@@ -64,6 +68,8 @@ class GameView(
         private var persistedFighterHP: Int? = null
         private var persistedSamuraiArcherHP: Int? = null
         private var persistedSamuraiCommanderHP: Int? = null
+
+        private var showDebugPickup = false
         
         /**
          * Reset toàn bộ skills đã lưu (gọi khi game over hoặc về main menu)
@@ -135,6 +141,31 @@ class GameView(
 
     // ===== ITEM SYSTEM =====
     private val healthHearts = mutableListOf<HealthHeart>()
+
+    // ===== NEW IMPROVED ITEM SYSTEM =====
+    private val damageBoosts = mutableListOf<DamageBoost>()
+    private val speedFlames = mutableListOf<SpeedFlame>()
+    private val temporaryEffectManager = TemporaryEffectManager()
+
+    // ===== EXPLOSION EFFECT =====
+    private data class ItemExplosion(
+        var x: Float,
+        var y: Float,
+        var particles: List<ExplosionParticle>,
+        var lifetime: Int = 0,
+        val maxLifetime: Int = 60
+    ) {
+        data class ExplosionParticle(
+            var x: Float,
+            var y: Float,
+            var vx: Float,
+            var vy: Float,
+            var size: Float,
+            var alpha: Int
+        )
+    }
+
+    private val itemExplosions = mutableListOf<ItemExplosion>()
     
     // ===== SKILL SYSTEM =====
     private val blackHoleSkillItems = mutableListOf<BlackHoleSkillItem>()
@@ -757,9 +788,11 @@ class GameView(
         val joystickX = joystick.getX()
         val joystickY = 0f
 
-        fighter?.update(joystickX, joystickY)
-        samuraiArcher?.update(joystickX, joystickY)
-        samuraiCommander?.update(joystickX, joystickY)
+        // Áp dụng speed boost nếu có
+        val speedMultiplier = temporaryEffectManager.getSpeedMultiplier()
+        fighter?.updateWithSpeedBoost(joystickX, joystickY, speedMultiplier)
+        samuraiArcher?.updateWithSpeedBoost(joystickX, joystickY, speedMultiplier)
+        samuraiCommander?.updateWithSpeedBoost(joystickX, joystickY, speedMultiplier)
 
         // ===== QUẢN LÝ ÂM THANH CHẠY =====
         val isMoving = joystickX != 0f || joystickY != 0f
@@ -1187,6 +1220,65 @@ class GameView(
         updateItems()
         checkItemPickup(playerX, playerY)
         checkSkillPickupRange(playerX, playerY)
+
+        // THÊM AUTO-PICKUP CHO ITEMS GẦN QUÁ
+        autoPickupNearbyItems(playerX, playerY)
+    }
+
+    private fun autoPickupNearbyItems(playerX: Float, playerY: Float) {
+        val autoPickupRange = 80f // Khoảng cách tự động nhặt
+
+        // Auto pickup health hearts
+        healthHearts.forEach { heart ->
+            if (!heart.isCollected()) {
+                val distance = kotlin.math.sqrt(
+                    (heart.getX() - playerX) * (heart.getX() - playerX) +
+                            (heart.getY() - playerY) * (heart.getY() - playerY)
+                )
+                if (distance <= autoPickupRange) {
+                    heart.collect()
+                    fighter?.heal(heart.getHealAmount())
+                    samuraiArcher?.heal(heart.getHealAmount())
+                    samuraiCommander?.heal(heart.getHealAmount())
+                }
+            }
+        }
+
+        // Auto pickup damage boosts
+        damageBoosts.forEach { boost ->
+            if (!boost.isCollected()) {
+                val distance = kotlin.math.sqrt(
+                    (boost.getX() - playerX) * (boost.getX() - playerX) +
+                            (boost.getY() - playerY) * (boost.getY() - playerY)
+                )
+                if (distance <= autoPickupRange) {
+                    boost.collect()
+                    temporaryEffectManager.addEffect(
+                        TemporaryEffectManager.EffectType.DAMAGE_BOOST,
+                        600,
+                        0.5f
+                    )
+                }
+            }
+        }
+
+        // Auto pickup speed flames
+        speedFlames.forEach { flame ->
+            if (!flame.isCollected()) {
+                val distance = kotlin.math.sqrt(
+                    (flame.getX() - playerX) * (flame.getX() - playerX) +
+                            (flame.getY() - playerY) * (flame.getY() - playerY)
+                )
+                if (distance <= autoPickupRange) {
+                    flame.collect()
+                    temporaryEffectManager.addEffect(
+                        TemporaryEffectManager.EffectType.SPEED_BOOST,
+                        600,
+                        0.5f
+                    )
+                }
+            }
+        }
     }
 
     override fun draw(canvas: Canvas) {
@@ -1229,6 +1321,15 @@ class GameView(
         // ===== VẼ ITEMS =====
         for (heart in healthHearts) {
             heart.draw(canvas)
+        }
+
+        // ===== VẼ NEW ITEMS =====
+        for (damageBoost in damageBoosts) {
+            damageBoost.draw(canvas)
+        }
+
+        for (flame in speedFlames) {
+            flame.draw(canvas)
         }
         
         // ===== VẼ SKILL ITEMS =====
@@ -1280,6 +1381,10 @@ class GameView(
         samuraiCommander?.draw(canvas)
 
         canvas.restore()
+
+        // ===== VẼ EXPLOSION EFFECTS VÀ UI INDICATORS =====
+        drawItemExplosions(canvas)
+        drawEffectIndicators(canvas)
 
         fighter?.drawUI(canvas)
         samuraiArcher?.drawUI(canvas)
@@ -1436,6 +1541,11 @@ class GameView(
         shieldSkillButton?.draw(canvas)
         bombSkillButton?.draw(canvas)
         lightningSkillButton?.draw(canvas)
+
+        // VẼ PICKUP RANGE DEBUG (tạm thời để test)
+        if (showDebugPickup) {
+            drawPickupDebug(canvas)
+        }
     }
 
     private fun showGameOver() {
@@ -1575,6 +1685,12 @@ class GameView(
     private fun resetGame() {
         resetGame(clearSkills = true)  // Reset hoàn toàn, xóa cả skills đã nhặt
         resetPersistedSkills()  // Xóa luôn persisted skills
+
+        // Clear new items
+        damageBoosts.clear()
+        speedFlames.clear()
+        itemExplosions.clear()
+        temporaryEffectManager.reset()
     }
     
     /**
@@ -1736,62 +1852,67 @@ class GameView(
     /**
      * Helper function: Tấn công quái và kiểm tra nếu chết thì tăng counter ngay
      */
+    /**
+     * Helper function: Tấn công quái và kiểm tra nếu chết thì tăng counter ngay
+     */
     private fun damageSkeletonAndCheck(skeleton: Skeleton, damage: Int) {
         val wasAlive = !skeleton.isDead()
-        skeleton.takeDamage(damage)
+        val boostedDamage = (damage * temporaryEffectManager.getDamageMultiplier()).toInt()
+        skeleton.takeDamage(boostedDamage)
         if (wasAlive && skeleton.isDead()) {
             enemiesKilled++
-            // Spawn item nếu may mắn
-            trySpawnItem(skeleton.getX(), skeleton.y)
+            // Spawn item với enemy type chính xác
+            trySpawnItem(skeleton.getX(), skeleton.y, "SKELETON")
         }
     }
 
     private fun damageDemonAndCheck(demon: Demon, damage: Int) {
         val wasAlive = !demon.isDead()
-        demon.takeDamage(damage)
+        val boostedDamage = (damage * temporaryEffectManager.getDamageMultiplier()).toInt()
+        demon.takeDamage(boostedDamage)
         if (wasAlive && demon.isDead()) {
             enemiesKilled++
-            // Spawn item nếu may mắn
-            trySpawnItem(demon.getX(), demon.y)
+            trySpawnItem(demon.getX(), demon.y, "DEMON")
         }
     }
 
     private fun damageMedusaAndCheck(medusa: Medusa, damage: Int) {
         val wasAlive = !medusa.isDead()
-        medusa.takeDamage(damage)
+        val boostedDamage = (damage * temporaryEffectManager.getDamageMultiplier()).toInt()
+        medusa.takeDamage(boostedDamage)
         if (wasAlive && medusa.isDead()) {
             enemiesKilled++
-            // Spawn item nếu may mắn
-            trySpawnItem(medusa.getX(), medusa.y)
+            trySpawnItem(medusa.getX(), medusa.y, "MEDUSA")
         }
     }
 
     private fun damageJinnAndCheck(jinn: Jinn, damage: Int) {
         val wasAlive = !jinn.isDead()
-        jinn.takeDamage(damage)
+        val boostedDamage = (damage * temporaryEffectManager.getDamageMultiplier()).toInt()
+        jinn.takeDamage(boostedDamage)
         if (wasAlive && jinn.isDead()) {
             enemiesKilled++
-            // Spawn item nếu may mắn
-            trySpawnItem(jinn.getX(), jinn.y)
+            trySpawnItem(jinn.getX(), jinn.y, "JINN")
         }
     }
 
     private fun damageSmallDragonAndCheck(dragon: SmallDragon, damage: Int) {
         val wasAlive = !dragon.isDead()
-        dragon.takeDamage(damage)
+        val boostedDamage = (damage * temporaryEffectManager.getDamageMultiplier()).toInt()
+        dragon.takeDamage(boostedDamage)
         if (wasAlive && dragon.isDead()) {
             enemiesKilled++
-            // Spawn item nếu may mắn
-            trySpawnItem(dragon.getX(), dragon.y)
+            trySpawnItem(dragon.getX(), dragon.y, "SMALL_DRAGON")
         }
     }
+
     private fun damageDragonAndCheck(dragon: Dragon, damage: Int) {
         val wasAlive = !dragon.isDead()
-        dragon.takeDamage(damage)
+        val boostedDamage = (damage * temporaryEffectManager.getDamageMultiplier()).toInt()
+        dragon.takeDamage(boostedDamage)
         if (wasAlive && dragon.isDead()) {
             enemiesKilled++
-            // Spawn item nếu may mắn
-            trySpawnItem(dragon.getX(), dragon.y)
+            trySpawnItem(dragon.getX(), dragon.y, "DRAGON")
         }
     }
 
@@ -1799,125 +1920,190 @@ class GameView(
     /**
      * Thử spawn item khi quái chết
      */
-    private fun trySpawnItem(x: Float, y: Float) {
+    /**
+     * Thử spawn item khi quái chết - Version mới với explosion effect
+     */
+    /**
+     * Thử spawn item khi quái chết - với enemy type thực tế
+     */
+    private fun trySpawnItem(x: Float, y: Float, enemyType: String = "SKELETON") {
         val groundY = when (mapType) {
             2 -> desertMap?.groundY ?: (height * 0.75f)
             3 -> volcanoMap?.groundY ?: (height * 0.75f)
             else -> grasslandMap?.groundY ?: (height * 0.75f)
         }
-        
-        // Kiểm tra 50% rơi trái tim
-        if (ItemDropConfig.shouldDropItem(0.5f)) {
-            healthHearts.add(HealthHeart(gameContext, x, groundY - 150f))
+
+        val currentLevel = mapType
+        val droppedItems = ItemDropConfig.rollDropsForEnemy(enemyType, currentLevel)
+
+        if (droppedItems.isNotEmpty()) {
+            createItemExplosion(x, groundY - 150f, droppedItems.size)
+
+            val positions = ItemDropConfig.calculateExplosionPositions(
+                x, groundY - 150f, droppedItems.size, 80f // Giảm radius từ 120f xuống 80f
+            )
+
+            droppedItems.forEachIndexed { index, config ->
+                val pos = positions[index]
+
+                // ĐẢM BẢO ITEMS KHÔNG RƠI RA NGOÀI MAP
+                val clampedX = pos.first.coerceIn(50f, 2950f) // Giới hạn trong map 3000px
+                val clampedY = pos.second.coerceIn(groundY - 200f, groundY - 100f)
+
+                when (config.itemType) {
+                    ItemDropConfig.ItemType.HEALTH_HEART -> {
+                        healthHearts.add(HealthHeart(gameContext, clampedX, clampedY, config.healAmount))
+                    }
+                    ItemDropConfig.ItemType.DAMAGE_BOOST -> {
+                        damageBoosts.add(DamageBoost(gameContext, clampedX, clampedY))
+                    }
+                    ItemDropConfig.ItemType.SPEED_FLAME -> {
+                        speedFlames.add(SpeedFlame(gameContext, clampedX, clampedY))
+                    }
+                    ItemDropConfig.ItemType.BLACK_HOLE_SKILL -> {
+                        blackHoleSkillItems.add(BlackHoleSkillItem(gameContext, pos.first, pos.second))
+                    }
+                    ItemDropConfig.ItemType.LASER_BEAM_SKILL -> {
+                        laserBeamSkillItems.add(LaserBeamSkillItem(gameContext, pos.first, pos.second))
+                    }
+                    ItemDropConfig.ItemType.SHIELD_SKILL -> {
+                        shieldSkillItems.add(ShieldSkillItem(gameContext, pos.first, pos.second))
+                    }
+                    ItemDropConfig.ItemType.BOMB_SKILL -> {
+                        bombSkillItems.add(BombSkillItem(gameContext, pos.first, pos.second))
+                    }
+                    ItemDropConfig.ItemType.LIGHTNING_SKILL -> {
+                        lightningSkillItems.add(LightningSkillItem(gameContext, pos.first, pos.second))
+                    }
+                }
+            }
         }
-        
-        // Kiểm tra 50% rơi skill Black Hole
-        if (ItemDropConfig.shouldDropBlackHoleSkill()) {
-            blackHoleSkillItems.add(BlackHoleSkillItem(gameContext, x, groundY - 150f))
+    }
+
+    // Explosion effect helper function
+    private fun createItemExplosion(x: Float, y: Float, itemCount: Int) {
+        val particles = mutableListOf<ItemExplosion.ExplosionParticle>()
+
+        repeat(15) {
+            val angle = Math.random() * 2 * Math.PI
+            val speed = (Math.random() * 8 + 4).toFloat()
+
+            particles.add(
+                ItemExplosion.ExplosionParticle(
+                    x = x,
+                    y = y,
+                    vx = (Math.cos(angle) * speed).toFloat(),
+                    vy = (Math.sin(angle) * speed).toFloat(),
+                    size = (Math.random() * 4 + 2).toFloat(),
+                    alpha = 255
+                )
+            )
         }
-        
-        // Kiểm tra 50% rơi skill Laser Beam
-        if (ItemDropConfig.shouldDropLaserBeamSkill()) {
-            laserBeamSkillItems.add(LaserBeamSkillItem(gameContext, x, groundY - 150f))
-        }
-        
-        // Kiểm tra 50% rơi skill Shield
-        if (ItemDropConfig.shouldDropShieldSkill()) {
-            shieldSkillItems.add(ShieldSkillItem(gameContext, x, groundY - 150f))
-        }
-        
-        // Kiểm tra 50% rơi skill Bomb
-        if (ItemDropConfig.shouldDropBombSkill()) {
-            bombSkillItems.add(BombSkillItem(gameContext, x, groundY - 150f))
-        }
-        
-        // Kiểm tra 50% rơi skill Lightning
-        if (ItemDropConfig.shouldDropLightningSkill()) {
-            lightningSkillItems.add(LightningSkillItem(gameContext, x, groundY - 150f))
-        }
+
+        itemExplosions.add(ItemExplosion(x, y, particles))
     }
 
     /**
      * Update tất cả items
      */
+    /**
+     * Update tất cả items và effects
+     */
     private fun updateItems() {
-        // Update health hearts
+        // Health hearts
         healthHearts.forEach { it.update() }
-        
-        // Xóa items đã hết thời gian tồn tại
         healthHearts.removeAll { it.shouldBeRemoved() }
-        
-        // Update black hole skill items
+
+        // Damage boosts (thay thế magic potions)
+        damageBoosts.forEach { it.update() }
+        damageBoosts.removeAll { it.shouldBeRemoved() }
+
+        // Speed flames
+        speedFlames.forEach { it.update() }
+        speedFlames.removeAll { it.shouldBeRemoved() }
+
+        speedFlames.forEach { it.update() }
+        speedFlames.removeAll { it.shouldBeRemoved() }
+
+        // Update temporary effects
+        temporaryEffectManager.update()
+
+        // Update explosions
+        itemExplosions.forEach { explosion ->
+            explosion.lifetime++
+            explosion.particles.forEach { particle ->
+                particle.x += particle.vx
+                particle.y += particle.vy
+                particle.vy += 0.3f // gravity
+                particle.vx *= 0.98f // air resistance
+                particle.alpha = (particle.alpha * 0.95f).toInt().coerceIn(0, 255)
+            }
+        }
+        itemExplosions.removeAll { it.lifetime >= it.maxLifetime }
+
+        // Update existing skill items
         blackHoleSkillItems.forEach { it.update() }
         blackHoleSkillItems.removeAll { it.shouldBeRemoved() }
-        
-        // Update laser beam skill items
+
         laserBeamSkillItems.forEach { it.update() }
         laserBeamSkillItems.removeAll { it.shouldBeRemoved() }
-        
-        // Update shield skill items
+
         shieldSkillItems.forEach { it.update() }
         shieldSkillItems.removeAll { it.shouldBeRemoved() }
-        
-        // Update bomb skill items
+
         bombSkillItems.forEach { it.update() }
         bombSkillItems.removeAll { it.shouldBeRemoved() }
-        
-        // Update lightning skill items
+
         lightningSkillItems.forEach { it.update() }
         lightningSkillItems.removeAll { it.shouldBeRemoved() }
-        
-        // Update black hole effects
+
+        // Update effects (giữ nguyên code cũ)
         blackHoleEffects.forEach { effect ->
             effect.update()
-            
+
             if (effect.isActive()) {
                 applyBlackHoleEffects(effect)
             }
         }
         blackHoleEffects.removeAll { !it.isActive() }
-        
-        // Update laser beam effects
+
         laserBeamEffects.forEach { effect ->
             effect.update()
-            
+
             if (effect.isActive() && !effect.hasDamageBeenDealt()) {
                 applyLaserBeamDamage(effect)
             }
         }
         laserBeamEffects.removeAll { !it.isActive() }
-        
-        // Update shield effect
+
         shieldEffect?.let { shield ->
             val playerX = fighter?.getX() ?: samuraiArcher?.getX() ?: samuraiCommander?.getX() ?: 0f
             val playerY = fighter?.y ?: samuraiArcher?.y ?: samuraiCommander?.y ?: 0f
             shield.update(playerX, playerY)
-            
+
             if (!shield.isActive()) {
                 shieldEffect = null
             }
         }
-        
-        // Update bomb effects
+
         bombEffects.forEach { effect ->
             effect.update()
-            
+
             if (effect.isActive()) {
                 applyBombEffects(effect)
             }
         }
         bombEffects.removeAll { !it.isActive() }
-        
-        // Update lightning effects
+
         lightningEffects.forEach { effect ->
             effect.update()
-            
+
             if (effect.isActive()) {
                 applyLightningEffects(effect)
             }
         }
         lightningEffects.removeAll { !it.isActive() }
-        
+
         // Update buttons
         pickupButton.update()
         blackHoleSkillButton?.update()
@@ -1930,19 +2116,83 @@ class GameView(
     /**
      * Kiểm tra và nhặt item
      */
+    /**
+     * Kiểm tra và nhặt item - Version mới với magic potions và speed flames
+     */
     private fun checkItemPickup(playerX: Float, playerY: Float) {
-        val pickupRange = 100f
-        
-        // Kiểm tra nhặt health heart
+        val pickupRange = 120f // Tăng từ 100f lên 120f để dễ nhặt hơn
+
+        // Health hearts
         healthHearts.forEach { heart ->
-            if (!heart.isCollected() && heart.isCollidingWith(playerX, playerY, pickupRange)) {
-                // Hồi máu cho hero (20 HP)
-                fighter?.heal(20)
-                samuraiArcher?.heal(20)
-                samuraiCommander?.heal(20)
-                
-                // Đánh dấu đã nhặt
+            if (!heart.isCollected() && isInPickupRange(heart.getX(), heart.getY(), playerX, playerY, pickupRange)) {
+                fighter?.heal(heart.getHealAmount())
+                samuraiArcher?.heal(heart.getHealAmount())
+                samuraiCommander?.heal(heart.getHealAmount())
                 heart.collect()
+            }
+        }
+
+        // Damage boosts
+        damageBoosts.forEach { damageBoost ->
+            if (!damageBoost.isCollected() && isInPickupRange(damageBoost.getX(), damageBoost.getY(), playerX, playerY, pickupRange)) {
+                damageBoost.collect()
+                temporaryEffectManager.addEffect(
+                    TemporaryEffectManager.EffectType.DAMAGE_BOOST,
+                    600, // 10 seconds at 60fps
+                    0.5f  // 50% more damage
+                )
+            }
+        }
+
+        // Speed flames
+        speedFlames.forEach { flame ->
+            if (!flame.isCollected() && isInPickupRange(flame.getX(), flame.getY(), playerX, playerY, pickupRange)) {
+                flame.collect()
+                temporaryEffectManager.addEffect(
+                    TemporaryEffectManager.EffectType.SPEED_BOOST,
+                    600, // 10 seconds at 60fps
+                    0.5f  // 50% tăng tốc
+                )
+            }
+        }
+    }
+
+    // Helper function để kiểm tra collision chính xác hơn
+    private fun isInPickupRange(itemX: Float, itemY: Float, playerX: Float, playerY: Float, range: Float): Boolean {
+        val dx = itemX - playerX
+        val dy = itemY - playerY
+        val distance = kotlin.math.sqrt(dx * dx + dy * dy)
+        return distance <= range
+    }
+
+    // THÊM FUNCTION MỚI NGAY SAU checkItemPickup
+    private fun applyMagicPotionEffect(skillType: MagicPotion.SkillType) {
+        when (skillType) {
+            MagicPotion.SkillType.HEAL_BURST -> {
+                fighter?.heal(50)
+                samuraiArcher?.heal(50)
+                samuraiCommander?.heal(50)
+            }
+            MagicPotion.SkillType.SPEED_BOOST -> {
+                temporaryEffectManager.addEffect(
+                    TemporaryEffectManager.EffectType.SPEED_BOOST,
+                    300, // 5 seconds
+                    0.7f  // 70% faster
+                )
+            }
+            MagicPotion.SkillType.DAMAGE_BOOST -> {
+                temporaryEffectManager.addEffect(
+                    TemporaryEffectManager.EffectType.DAMAGE_BOOST,
+                    450, // 7.5 seconds
+                    0.5f  // 50% more damage
+                )
+            }
+            // THÊM CÁC CASE CÒN THIẾU
+            MagicPotion.SkillType.FIREBALL -> {
+                // TODO: Implement fireball skill
+            }
+            MagicPotion.SkillType.ICE_SHARD -> {
+                // TODO: Implement ice shard skill
             }
         }
     }
@@ -2818,6 +3068,177 @@ class GameView(
         // Dừng và giải phóng âm thanh, bitmap, animation (nếu có)
         soundManager.release()
         // Nếu có resource, bitmap, enemy asset lớn thì giải phóng ở đây
+    }
+
+    private fun drawItemExplosions(canvas: Canvas) {
+        itemExplosions.forEach { explosion ->
+            explosion.particles.forEach { particle ->
+                val paint = Paint().apply {
+                    color = Color.argb(particle.alpha, 255, 200, 100)
+                    isAntiAlias = true
+                }
+                canvas.drawCircle(
+                    particle.x - cameraX,
+                    particle.y - cameraY,
+                    particle.size,
+                    paint
+                )
+            }
+        }
+    }
+
+    private fun drawEffectIndicators(canvas: Canvas) {
+        var offsetY = 200f
+
+        if (temporaryEffectManager.hasEffect(TemporaryEffectManager.EffectType.SPEED_BOOST)) {
+            val remainingTime = temporaryEffectManager.getRemainingTime(TemporaryEffectManager.EffectType.SPEED_BOOST)
+            val seconds = remainingTime / 60 + 1
+
+            val paint = Paint().apply {
+                color = Color.YELLOW
+                textSize = 32f
+                isAntiAlias = true
+                setShadowLayer(3f, 0f, 0f, Color.BLACK)
+            }
+
+            canvas.drawText("🔥 Speed Boost: ${seconds}s", 20f, offsetY, paint)
+            offsetY += 40f
+        }
+
+        if (temporaryEffectManager.hasEffect(TemporaryEffectManager.EffectType.DAMAGE_BOOST)) {
+            val remainingTime = temporaryEffectManager.getRemainingTime(TemporaryEffectManager.EffectType.DAMAGE_BOOST)
+            val seconds = remainingTime / 60 + 1
+
+            val paint = Paint().apply {
+                color = Color.RED
+                textSize = 32f
+                isAntiAlias = true
+                setShadowLayer(3f, 0f, 0f, Color.BLACK)
+            }
+
+            canvas.drawText("⚔️ Damage Boost: ${seconds}s", 20f, offsetY, paint)
+        }
+    }
+
+    private fun drawPickupDebug(canvas: Canvas) {
+        val playerX = fighter?.getX() ?: samuraiArcher?.getX() ?: samuraiCommander?.getX() ?: 0f
+        val playerY = fighter?.y ?: samuraiArcher?.y ?: samuraiCommander?.y ?: 0f
+        val pickupRange = 120f
+
+        val debugPaint = Paint().apply {
+            isAntiAlias = true
+        }
+
+        // Vẽ pickup range xung quanh player (vòng tròn xanh lá trong suốt)
+        debugPaint.color = Color.argb(80, 0, 255, 0) // Green transparent
+        debugPaint.style = Paint.Style.FILL
+        canvas.drawCircle(
+            playerX - cameraX,
+            playerY - cameraY,
+            pickupRange,
+            debugPaint
+        )
+
+        // Vẽ viền pickup range
+        debugPaint.color = Color.argb(150, 0, 255, 0) // Green border
+        debugPaint.style = Paint.Style.STROKE
+        debugPaint.strokeWidth = 3f
+        canvas.drawCircle(
+            playerX - cameraX,
+            playerY - cameraY,
+            pickupRange,
+            debugPaint
+        )
+
+        // Vẽ health hearts với chấm đỏ
+        debugPaint.style = Paint.Style.FILL
+        healthHearts.forEach { heart ->
+            if (!heart.isCollected()) {
+                debugPaint.color = Color.argb(200, 255, 0, 0) // Red
+                canvas.drawCircle(
+                    heart.getX() - cameraX,
+                    heart.getY() - cameraY,
+                    15f, // Kích thước chấm debug
+                    debugPaint
+                )
+
+                // Vẽ viền trắng để dễ nhìn
+                debugPaint.color = Color.WHITE
+                debugPaint.style = Paint.Style.STROKE
+                debugPaint.strokeWidth = 2f
+                canvas.drawCircle(
+                    heart.getX() - cameraX,
+                    heart.getY() - cameraY,
+                    15f,
+                    debugPaint
+                )
+                debugPaint.style = Paint.Style.FILL
+            }
+        }
+
+        // Vẽ damage boosts với chấm xanh dương
+        damageBoosts.forEach { boost ->
+            if (!boost.isCollected()) {
+                debugPaint.color = Color.argb(200, 0, 0, 255) // Blue
+                canvas.drawCircle(
+                    boost.getX() - cameraX,
+                    boost.getY() - cameraY,
+                    15f,
+                    debugPaint
+                )
+
+                debugPaint.color = Color.WHITE
+                debugPaint.style = Paint.Style.STROKE
+                debugPaint.strokeWidth = 2f
+                canvas.drawCircle(
+                    boost.getX() - cameraX,
+                    boost.getY() - cameraY,
+                    15f,
+                    debugPaint
+                )
+                debugPaint.style = Paint.Style.FILL
+            }
+        }
+
+        // Vẽ speed flames với chấm vàng
+        speedFlames.forEach { flame ->
+            if (!flame.isCollected()) {
+                debugPaint.color = Color.argb(200, 255, 255, 0) // Yellow
+                canvas.drawCircle(
+                    flame.getX() - cameraX,
+                    flame.getY() - cameraY,
+                    15f,
+                    debugPaint
+                )
+
+                debugPaint.color = Color.WHITE
+                debugPaint.style = Paint.Style.STROKE
+                debugPaint.strokeWidth = 2f
+                canvas.drawCircle(
+                    flame.getX() - cameraX,
+                    flame.getY() - cameraY,
+                    15f,
+                    debugPaint
+                )
+                debugPaint.style = Paint.Style.FILL
+            }
+        }
+
+        // Vẽ thông tin debug ở góc trên trái
+        debugPaint.color = Color.WHITE
+        debugPaint.textSize = 24f
+        debugPaint.setShadowLayer(2f, 1f, 1f, Color.BLACK)
+
+        canvas.drawText("DEBUG MODE", 20f, 50f, debugPaint)
+        canvas.drawText("Green Circle = Pickup Range", 20f, 80f, debugPaint)
+        canvas.drawText("Red Dots = Health Hearts", 20f, 110f, debugPaint)
+        canvas.drawText("Blue Dots = Damage Boosts", 20f, 140f, debugPaint)
+        canvas.drawText("Yellow Dots = Speed Flames", 20f, 170f, debugPaint)
+
+        // Hiển thị số lượng items
+        canvas.drawText("Hearts: ${healthHearts.count { !it.isCollected() }}", 20f, 220f, debugPaint)
+        canvas.drawText("Damage: ${damageBoosts.count { !it.isCollected() }}", 20f, 250f, debugPaint)
+        canvas.drawText("Speed: ${speedFlames.count { !it.isCollected() }}", 20f, 280f, debugPaint)
     }
 }
 

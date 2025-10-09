@@ -1,152 +1,146 @@
 package com.example.laptrinhgame2d.items
 
-/**
- * Cấu hình tỉ lệ rơi vật phẩm khi giết quái
- */
+import kotlin.math.cos
+import kotlin.math.sin
+import kotlin.random.Random
+
 object ItemDropConfig {
-    
-    /**
-     * Loại vật phẩm có thể rơi
-     */
+
     enum class ItemType {
-        HEALTH_HEART,       // Trái tim hồi máu
-        BLACK_HOLE_SKILL,   // Skill hố đen
-        LASER_BEAM_SKILL,   // Skill laser beam
-        SHIELD_SKILL,       // Skill khiên bảo vệ
-        BOMB_SKILL,         // Skill bom nổ
-        LIGHTNING_SKILL,    // Skill tia sét
-        // Có thể mở rộng thêm: MANA_POTION, COIN, POWER_UP, etc.
+        HEALTH_HEART,
+        DAMAGE_BOOST,      // Thay thế MAGIC_POTION
+        SPEED_FLAME,
+        BLACK_HOLE_SKILL,
+        LASER_BEAM_SKILL,
+        SHIELD_SKILL,
+        BOMB_SKILL,
+        LIGHTNING_SKILL
     }
-    
-    /**
-     * Cấu hình rơi cho từng loại quái
-     */
-    data class DropConfig(
+
+    data class ItemDropEntry(
         val itemType: ItemType,
-        val dropChance: Float,      // Tỉ lệ rơi (0.0 - 1.0), ví dụ: 0.5 = 50%
-        val healAmount: Int = 20    // Số máu hồi (chỉ cho HEALTH_HEART)
+        val healAmount: Int = 25
     )
-    
-    /**
-     * Tỉ lệ rơi cho Skeleton
-     */
-    val SKELETON_DROPS = listOf(
-        DropConfig(
-            itemType = ItemType.HEALTH_HEART,
-            dropChance = 0.5f,  // 50% rơi trái tim
-            healAmount = 20
+
+    // Drop configs (giữ nguyên tỷ lệ cao)
+    private val dropConfigs = mapOf(
+        "SKELETON" to mapOf(
+            1 to 0.7f,
+            2 to 0.8f,
+            3 to 0.9f
+        ),
+        "DEMON" to mapOf(
+            1 to 0.75f,
+            2 to 0.85f,
+            3 to 0.95f
+        ),
+        "MEDUSA" to mapOf(
+            1 to 0.8f,
+            2 to 0.9f,
+            3 to 1.0f
+        ),
+        "JINN" to mapOf(
+            1 to 0.8f,
+            2 to 0.9f,
+            3 to 1.0f
+        ),
+        "SMALL_DRAGON" to mapOf(
+            1 to 0.9f,
+            2 to 1.0f,
+            3 to 1.0f
+        ),
+        "DRAGON" to mapOf(
+            1 to 1.0f,
+            2 to 1.0f,
+            3 to 1.0f
         )
     )
-    
-    /**
-     * Tỉ lệ rơi cho Demon
-     */
-    val DEMON_DROPS = listOf(
-        DropConfig(
-            itemType = ItemType.HEALTH_HEART,
-            dropChance = 0.5f,  // 50% rơi trái tim
-            healAmount = 20
-        )
-    )
-    
-    /**
-     * Tỉ lệ rơi cho Medusa
-     */
-    val MEDUSA_DROPS = listOf(
-        DropConfig(
-            itemType = ItemType.HEALTH_HEART,
-            dropChance = 0.5f,  // 50% rơi trái tim
-            healAmount = 20
-        )
-    )
-    
-    /**
-     * Tỉ lệ rơi cho Jinn
-     */
-    val JINN_DROPS = listOf(
-        DropConfig(
-            itemType = ItemType.HEALTH_HEART,
-            dropChance = 0.5f,  // 50% rơi trái tim
-            healAmount = 20
-        )
-    )
-    
-    /**
-     * Tỉ lệ rơi cho Small Dragon
-     */
-    val SMALL_DRAGON_DROPS = listOf(
-        DropConfig(
-            itemType = ItemType.HEALTH_HEART,
-            dropChance = 0.5f,  // 50% rơi trái tim
-            healAmount = 20
-        )
-    )
-    
-    /**
-     * Tỉ lệ rơi cho Dragon (Boss)
-     */
-    val DRAGON_DROPS = listOf(
-        DropConfig(
-            itemType = ItemType.HEALTH_HEART,
-            dropChance = 0.5f,  // 50% rơi trái tim
-            healAmount = 20
-        )
-    )
-    
-    /**
-     * Kiểm tra xem có rơi item không dựa trên tỉ lệ
-     */
+
     fun shouldDropItem(dropChance: Float): Boolean {
-        return Math.random() < dropChance
+        return Random.nextFloat() < dropChance
     }
-    
+
     /**
-     * Kiểm tra xem có rơi skill Black Hole không (30% tỉ lệ)
+     * Roll drops - BỎ MAGIC_POTION, THÊM DAMAGE_BOOST
      */
-    fun shouldDropBlackHoleSkill(): Boolean {
-        return Math.random() < 0.3  // 30%
-    }
-    
-    /**
-     * Kiểm tra xem có rơi skill Laser Beam không (30% tỉ lệ)
-     */
-    fun shouldDropLaserBeamSkill(): Boolean {
-        return Math.random() < 0.3  // 30%
-    }
-    
-    /**
-     * Kiểm tra xem có rơi skill Shield không (30% tỉ lệ)
-     */
-    fun shouldDropShieldSkill(): Boolean {
-        return Math.random() < 0.3  // 30%
-    }
-    
-    /**
-     * Kiểm tra xem có rơi skill Bomb không (30% tỉ lệ)
-     */
-    fun shouldDropBombSkill(): Boolean {
-        return Math.random() < 0.3  // 30%
-    }
-    
-    /**
-     * Kiểm tra xem có rơi skill Lightning không (30% tỉ lệ)
-     */
-    fun shouldDropLightningSkill(): Boolean {
-        return Math.random() < 0.3  // 30%
-    }
-    
-    /**
-     * Lấy danh sách drop config theo loại quái
-     */
-    fun getDropsForEnemy(enemyType: String): List<DropConfig> {
-        return when (enemyType.uppercase()) {
-            "SKELETON" -> SKELETON_DROPS
-            "DEMON" -> DEMON_DROPS
-            "MEDUSA" -> MEDUSA_DROPS
-            "JINN" -> JINN_DROPS
-            "SMALLDRAGON", "SMALL_DRAGON" -> SMALL_DRAGON_DROPS
-            "DRAGON" -> DRAGON_DROPS
-            else -> emptyList()
+    fun rollDropsForEnemy(enemyType: String, level: Int = 1): List<ItemDropEntry> {
+        val droppedItems = mutableListOf<ItemDropEntry>()
+
+        val dropChance = dropConfigs[enemyType]?.get(level) ?: 0.7f
+
+        if (!shouldDropItem(dropChance)) {
+            return emptyList()
         }
+
+        val numberOfItems = when (enemyType) {
+            "SKELETON" -> if (Random.nextFloat() < 0.3f) 2 else 1
+            "DEMON" -> if (Random.nextFloat() < 0.4f) 2 else 1
+            "MEDUSA" -> if (Random.nextFloat() < 0.5f) 2 else 1
+            "JINN" -> if (Random.nextFloat() < 0.5f) 2 else 1
+            "SMALL_DRAGON" -> if (Random.nextFloat() < 0.7f) 2 else 1
+            "DRAGON" -> 3
+            else -> 1
+        }
+
+        repeat(numberOfItems) {
+            val itemTypeRoll = Random.nextFloat()
+
+            when {
+                itemTypeRoll < 0.4f -> {
+                    // 40% chance drop health heart
+                    droppedItems.add(ItemDropEntry(ItemType.HEALTH_HEART, healAmount = 35))
+                }
+                itemTypeRoll < 0.6f -> {
+                    // 20% chance drop damage boost (thay thế magic potion)
+                    droppedItems.add(ItemDropEntry(ItemType.DAMAGE_BOOST))
+                }
+                itemTypeRoll < 0.75f -> {
+                    // 15% chance drop speed flame
+                    droppedItems.add(ItemDropEntry(ItemType.SPEED_FLAME))
+                }
+                else -> {
+                    // 25% chance drop skill items (tăng từ 20%)
+                    val skillTypes = listOf(
+                        ItemType.BLACK_HOLE_SKILL,
+                        ItemType.LASER_BEAM_SKILL,
+                        ItemType.SHIELD_SKILL,
+                        ItemType.BOMB_SKILL,
+                        ItemType.LIGHTNING_SKILL
+                    )
+                    droppedItems.add(ItemDropEntry(skillTypes.random()))
+                }
+            }
+        }
+
+        return droppedItems
+    }
+
+    fun calculateExplosionPositions(
+        centerX: Float,
+        centerY: Float,
+        itemCount: Int,
+        radius: Float
+    ): List<Pair<Float, Float>> {
+        val positions = mutableListOf<Pair<Float, Float>>()
+
+        if (itemCount == 1) {
+            positions.add(Pair(centerX, centerY))
+        } else {
+            for (i in 0 until itemCount) {
+                val angle = (2 * Math.PI * i / itemCount) + Random.nextFloat() * 0.5f
+                val distance = radius + Random.nextFloat() * 50f
+
+                val x = centerX + cos(angle).toFloat() * distance
+                val y = centerY + sin(angle).toFloat() * distance
+
+                positions.add(Pair(x, y))
+            }
+        }
+
+        return positions
+    }
+
+    fun getDropChance(enemyType: String, level: Int): Float {
+        return dropConfigs[enemyType]?.get(level) ?: 0.7f
     }
 }

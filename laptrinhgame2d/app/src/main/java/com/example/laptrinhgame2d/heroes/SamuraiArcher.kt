@@ -802,4 +802,13 @@ class SamuraiArcher(private val context: Context, private var x: Float, var y: F
         val distance = sqrt(dx * dx + dy * dy)
         return distance < range
     }
+
+    fun updateWithSpeedBoost(joystickX: Float, joystickY: Float, speedMultiplier: Float) {
+        // Tính toán joystick với speed boost
+        val boostedJoystickX = joystickX * speedMultiplier
+        val boostedJoystickY = joystickY * speedMultiplier
+
+        // Gọi update với giá trị đã boost
+        update(boostedJoystickX, boostedJoystickY)
+    }
 }
