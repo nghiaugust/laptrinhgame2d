@@ -328,6 +328,18 @@ class Fighter(private val context: Context, private var x: Float, var y: Float) 
         // Bỏ HURT state để không bị gián đoạn khi bị đánh
     }
 
+    /**
+     * Hồi máu cho hero
+     */
+    fun heal(amount: Int) {
+        if (isDead) return
+        
+        health += amount
+        if (health > maxHealth) {
+            health = maxHealth
+        }
+    }
+
     private fun die() {
         setState(State.DEAD)
         isDead = true

@@ -305,6 +305,18 @@ class SamuraiCommander(private val context: Context, private var x: Float, var y
         // Bỏ HURT state để không bị gián đoạn
     }
 
+    /**
+     * Hồi máu cho hero
+     */
+    fun heal(amount: Int) {
+        if (isDead) return
+        
+        health += amount
+        if (health > maxHealth) {
+            health = maxHealth
+        }
+    }
+
     private fun die() {
         setState(State.DEAD)
         isDead = true

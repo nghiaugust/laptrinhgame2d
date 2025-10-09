@@ -20,6 +20,18 @@ import com.example.laptrinhgame2d.enemies.SmallDragon
 import com.example.laptrinhgame2d.heroes.Fighter
 import com.example.laptrinhgame2d.heroes.SamuraiArcher
 import com.example.laptrinhgame2d.heroes.SamuraiCommander
+import com.example.laptrinhgame2d.items.HealthHeart
+import com.example.laptrinhgame2d.items.ItemDropConfig
+import com.example.laptrinhgame2d.items.skills.BlackHoleSkillItem
+import com.example.laptrinhgame2d.items.skills.BlackHoleEffect
+import com.example.laptrinhgame2d.items.skills.BlackHoleSkillButton
+import com.example.laptrinhgame2d.items.skills.LaserBeamSkillItem
+import com.example.laptrinhgame2d.items.skills.LaserBeamEffect
+import com.example.laptrinhgame2d.items.skills.LaserBeamSkillButton
+import com.example.laptrinhgame2d.items.skills.ShieldSkillItem
+import com.example.laptrinhgame2d.items.skills.ShieldEffect
+import com.example.laptrinhgame2d.items.skills.ShieldSkillButton
+import com.example.laptrinhgame2d.items.skills.PickupButton
 import com.example.laptrinhgame2d.maps.DesertMap
 import com.example.laptrinhgame2d.maps.GrasslandMap
 import com.example.laptrinhgame2d.maps.VolcanoMap
@@ -63,6 +75,28 @@ class GameView(
     private val jinns = mutableListOf<Jinn>()
     private val smallDragons = mutableListOf<SmallDragon>()
     private val dragons = mutableListOf<Dragon>()
+
+    // ===== ITEM SYSTEM =====
+    private val healthHearts = mutableListOf<HealthHeart>()
+    
+    // ===== SKILL SYSTEM =====
+    private val blackHoleSkillItems = mutableListOf<BlackHoleSkillItem>()
+    private val blackHoleEffects = mutableListOf<BlackHoleEffect>()
+    private var hasBlackHoleSkill = false
+    private lateinit var pickupButton: PickupButton
+    private var blackHoleSkillButton: BlackHoleSkillButton? = null
+    
+    // Laser Beam Skill
+    private val laserBeamSkillItems = mutableListOf<LaserBeamSkillItem>()
+    private val laserBeamEffects = mutableListOf<LaserBeamEffect>()
+    private var hasLaserBeamSkill = false
+    private var laserBeamSkillButton: LaserBeamSkillButton? = null
+    
+    // Shield Skill
+    private val shieldSkillItems = mutableListOf<ShieldSkillItem>()
+    private var shieldEffect: ShieldEffect? = null
+    private var hasShieldSkill = false
+    private var shieldSkillButton: ShieldSkillButton? = null
 
     // Camera
     private var cameraX = 0f
@@ -138,11 +172,16 @@ class GameView(
 
         joystick = Joystick(200f, 0f, 120f, 100f)
 
-        attackButton = GameButton(0f, 0f, 90f, "Attack", Color.rgb(255, 100, 100))
-        shieldButton = GameButton(0f, 0f, 90f, "Shield", Color.rgb(100, 100, 255))
-        jumpButton = GameButton(0f, 0f, 90f, "Jump", Color.rgb(100, 255, 100))
-        bowButton = GameButton(0f, 0f, 90f, "Bow", Color.rgb(255, 165, 0))
-        settingsButton = GameButton(0f, 0f, 70f, "⚙", Color.rgb(150, 150, 150))
+        // Giảm kích thước các nút cho phù hợp
+        attackButton = GameButton(0f, 0f, 70f, "Attack", Color.rgb(255, 100, 100))
+        shieldButton = GameButton(0f, 0f, 70f, "Shield", Color.rgb(100, 100, 255))
+        jumpButton = GameButton(0f, 0f, 70f, "Jump", Color.rgb(100, 255, 100))
+        bowButton = GameButton(0f, 0f, 70f, "Bow", Color.rgb(255, 165, 0))
+        settingsButton = GameButton(0f, 0f, 50f, "⚙", Color.rgb(150, 150, 150))
+        
+        // Khởi tạo pickup button (ẩn mặc định)
+        pickupButton = PickupButton(0f, 0f)
+        pickupButton.hide()
 
         when (characterType) {
             "Fighter" -> {
@@ -345,27 +384,42 @@ class GameView(
 
         joystick.centerY = screenHeight - 200f
 
-        settingsButton.x = 300f
-        settingsButton.y = 35f
+        // Settings button - góc trên bên phải (nhỏ gọn hơn)
+        settingsButton.x = screenWidth - 80f
+        settingsButton.y = 60f
 
         if (characterType == "Fighter") {
-            attackButton.x = screenWidth - 230f
-            attackButton.y = screenHeight - 200f
+            // Attack button - góc dưới bên phải
+            attackButton.x = screenWidth - 100f
+            attackButton.y = screenHeight - 150f
 
-            shieldButton.x = screenWidth - 120f
-            shieldButton.y = screenHeight - 200f
+            // Shield button - bên trái attack button
+            shieldButton.x = screenWidth - 220f
+            shieldButton.y = screenHeight - 150f
 
-            jumpButton.x = screenWidth - 175f
-            jumpButton.y = screenHeight - 320f
+            // Jump button - phía trên giữa attack và shield
+            jumpButton.x = screenWidth - 160f
+            jumpButton.y = screenHeight - 270f
         } else {
-            attackButton.x = screenWidth - 230f
-            attackButton.y = screenHeight - 200f
+            // Attack button - góc dưới bên phải
+            attackButton.x = screenWidth - 100f
+            attackButton.y = screenHeight - 150f
 
-            bowButton.x = screenWidth - 120f
-            bowButton.y = screenHeight - 200f
+            // Bow button - bên trái attack button
+            bowButton.x = screenWidth - 220f
+            bowButton.y = screenHeight - 150f
 
-            jumpButton.x = screenWidth - 175f
-            jumpButton.y = screenHeight - 320f
+            // Jump button - phía trên giữa attack và bow
+            jumpButton.x = screenWidth - 160f
+            jumpButton.y = screenHeight - 270f
+        }
+        
+        // Khởi tạo black hole skill button nếu đã unlock
+        if (hasBlackHoleSkill && blackHoleSkillButton == null) {
+            blackHoleSkillButton = BlackHoleSkillButton(
+                screenWidth - 350f,  // Bên trái nút attack
+                screenHeight - 200f
+            )
         }
 
         gameThread = GameThread(holder, this)
@@ -408,6 +462,40 @@ class GameView(
                 if (settingsButton.isPressed(x, y)) {
                     settingsButton.onTouch(pointerId)
                     showPauseMenu()
+                    return true
+                }
+                
+                // Pickup button
+                if (pickupButton.isVisible() && pickupButton.isPressed(x, y)) {
+                    pickupButton.onTouch(pointerId)
+                    tryPickupSkill()
+                    return true
+                }
+                
+                // Black Hole Skill button
+                if (hasBlackHoleSkill && blackHoleSkillButton?.isPressed(x, y) == true) {
+                    if (blackHoleSkillButton?.isReady() == true) {
+                        blackHoleSkillButton?.onTouch(pointerId)
+                        castBlackHole()
+                    }
+                    return true
+                }
+                
+                // Laser Beam Skill button
+                if (hasLaserBeamSkill && laserBeamSkillButton?.isPressed(x, y) == true) {
+                    if (laserBeamSkillButton?.isReady() == true) {
+                        laserBeamSkillButton?.onTouch(pointerId)
+                        castLaserBeam()
+                    }
+                    return true
+                }
+                
+                // Shield Skill button
+                if (hasShieldSkill && shieldSkillButton?.isPressed(x, y) == true) {
+                    if (shieldSkillButton?.isReady() == true) {
+                        shieldSkillButton?.onTouch(pointerId)
+                        castShield()
+                    }
                     return true
                 }
 
@@ -510,6 +598,10 @@ class GameView(
                 if (jumpButton.pointerId == pointerId) {
                     jumpButton.reset()
                 }
+                
+                // Reset skill buttons
+                pickupButton.reset()
+                blackHoleSkillButton?.reset()
             }
         }
         return true
@@ -697,9 +789,7 @@ class GameView(
                     // Phát âm thanh Skeleton tấn công
                     soundManager.playSkeletonAttackSound()
 
-                    fighter?.takeDamage(skeleton.getAttackDamage())
-                    samuraiArcher?.takeDamage(skeleton.getAttackDamage())
-                    samuraiCommander?.takeDamage(skeleton.getAttackDamage())
+                    applyDamageToPlayer(skeleton.getAttackDamage())
                     skeleton.markDamageDealt()
 
                     // Trừ điểm Flawless và phát âm thanh bị đánh
@@ -720,9 +810,7 @@ class GameView(
                     // Phát âm thanh Demon tấn công
                     soundManager.playDemonAttackSound()
 
-                    fighter?.takeDamage(demon.getAttackDamage())
-                    samuraiArcher?.takeDamage(demon.getAttackDamage())
-                    samuraiCommander?.takeDamage(demon.getAttackDamage())
+                    applyDamageToPlayer(demon.getAttackDamage())
                     demon.markDamageDealt()
 
                     // Phát âm thanh bị đánh
@@ -743,9 +831,7 @@ class GameView(
                             // Phát âm thanh Medusa tấn công
                             soundManager.playMedusaAttackSound()
 
-                            fighter?.takeDamage(projectile.getDamage())
-                            samuraiArcher?.takeDamage(projectile.getDamage())
-                            samuraiCommander?.takeDamage(projectile.getDamage())
+                            applyDamageToPlayer(projectile.getDamage())
                             projectile.markDamageDealt()
 
                             // Phát âm thanh bị đánh
@@ -764,9 +850,7 @@ class GameView(
                         // Phát âm thanh Jinn tấn công
                         soundManager.playJinnAttackSound()
 
-                        fighter?.takeDamage(projectile.getDamage())
-                        samuraiArcher?.takeDamage(projectile.getDamage())
-                        samuraiCommander?.takeDamage(projectile.getDamage())
+                        applyDamageToPlayer(projectile.getDamage())
                         projectile.markDamageDealt()
 
                         // Phát âm thanh bị đánh
@@ -784,9 +868,7 @@ class GameView(
                         // Phát âm thanh SmallDragon tấn công
                         soundManager.playSmallDragonAttackSound()
 
-                        fighter?.takeDamage(projectile.getDamage())
-                        samuraiArcher?.takeDamage(projectile.getDamage())
-                        samuraiCommander?.takeDamage(projectile.getDamage())
+                        applyDamageToPlayer(projectile.getDamage())
                         projectile.markDamageDealt()
 
                         // Phát âm thanh bị đánh
@@ -804,9 +886,7 @@ class GameView(
                         // Phát âm thanh Dragon tấn công
                         soundManager.playDragonAttackSound()
 
-                        fighter?.takeDamage(fire.getDamage())
-                        samuraiArcher?.takeDamage(fire.getDamage())
-                        samuraiCommander?.takeDamage(fire.getDamage())
+                        applyDamageToPlayer(fire.getDamage())
                         fire.markDamageDealt()
 
                         // Phát âm thanh bị đánh
@@ -998,6 +1078,11 @@ class GameView(
                 }
             }
         }
+
+        // ===== UPDATE & PICKUP ITEMS =====
+        updateItems()
+        checkItemPickup(playerX, playerY)
+        checkSkillPickupRange(playerX, playerY)
     }
 
     override fun draw(canvas: Canvas) {
@@ -1036,6 +1121,37 @@ class GameView(
         for (dragon in dragons) {
             dragon.draw(canvas)
         }
+
+        // ===== VẼ ITEMS =====
+        for (heart in healthHearts) {
+            heart.draw(canvas)
+        }
+        
+        // ===== VẼ SKILL ITEMS =====
+        for (skillItem in blackHoleSkillItems) {
+            skillItem.draw(canvas)
+        }
+        
+        for (skillItem in laserBeamSkillItems) {
+            skillItem.draw(canvas)
+        }
+        
+        for (skillItem in shieldSkillItems) {
+            skillItem.draw(canvas)
+        }
+        
+        // ===== VẼ BLACK HOLE EFFECTS =====
+        for (effect in blackHoleEffects) {
+            effect.draw(canvas)
+        }
+        
+        // ===== VẼ LASER BEAM EFFECTS =====
+        for (effect in laserBeamEffects) {
+            effect.draw(canvas)
+        }
+        
+        // ===== VẼ SHIELD EFFECT =====
+        shieldEffect?.draw(canvas)
 
         fighter?.draw(canvas)
         samuraiArcher?.draw(canvas)
@@ -1190,6 +1306,12 @@ class GameView(
         } else if (characterType == "Samurai_Archer") {
             bowButton.draw(canvas)
         }
+        
+        // ===== VẼ SKILL BUTTONS =====
+        pickupButton.draw(canvas)
+        blackHoleSkillButton?.draw(canvas)
+        laserBeamSkillButton?.draw(canvas)
+        shieldSkillButton?.draw(canvas)
     }
 
     private fun showGameOver() {
@@ -1341,6 +1463,18 @@ class GameView(
         smallDragons.clear()
         dragons.clear()
 
+        // Clear all items
+        healthHearts.clear()
+        
+        // Clear all skill items and effects
+        blackHoleSkillItems.clear()
+        blackHoleEffects.clear()
+        laserBeamSkillItems.clear()
+        laserBeamEffects.clear()
+        shieldSkillItems.clear()
+        shieldEffect = null
+        pickupButton.hide()
+
         // Reset wave system
         currentWaveNumber = 1
         wavesCompleted = 0
@@ -1378,6 +1512,8 @@ class GameView(
         skeleton.takeDamage(damage)
         if (wasAlive && skeleton.isDead()) {
             enemiesKilled++
+            // Spawn item nếu may mắn
+            trySpawnItem(skeleton.getX(), skeleton.y)
         }
     }
 
@@ -1386,6 +1522,8 @@ class GameView(
         demon.takeDamage(damage)
         if (wasAlive && demon.isDead()) {
             enemiesKilled++
+            // Spawn item nếu may mắn
+            trySpawnItem(demon.getX(), demon.y)
         }
     }
 
@@ -1394,6 +1532,8 @@ class GameView(
         medusa.takeDamage(damage)
         if (wasAlive && medusa.isDead()) {
             enemiesKilled++
+            // Spawn item nếu may mắn
+            trySpawnItem(medusa.getX(), medusa.y)
         }
     }
 
@@ -1402,6 +1542,8 @@ class GameView(
         jinn.takeDamage(damage)
         if (wasAlive && jinn.isDead()) {
             enemiesKilled++
+            // Spawn item nếu may mắn
+            trySpawnItem(jinn.getX(), jinn.y)
         }
     }
 
@@ -1410,6 +1552,8 @@ class GameView(
         dragon.takeDamage(damage)
         if (wasAlive && dragon.isDead()) {
             enemiesKilled++
+            // Spawn item nếu may mắn
+            trySpawnItem(dragon.getX(), dragon.y)
         }
     }
     private fun damageDragonAndCheck(dragon: Dragon, damage: Int) {
@@ -1417,6 +1561,610 @@ class GameView(
         dragon.takeDamage(damage)
         if (wasAlive && dragon.isDead()) {
             enemiesKilled++
+            // Spawn item nếu may mắn
+            trySpawnItem(dragon.getX(), dragon.y)
+        }
+    }
+
+    // ===== ITEM SYSTEM FUNCTIONS =====
+    /**
+     * Thử spawn item khi quái chết
+     */
+    private fun trySpawnItem(x: Float, y: Float) {
+        val groundY = when (mapType) {
+            2 -> desertMap?.groundY ?: (height * 0.75f)
+            3 -> volcanoMap?.groundY ?: (height * 0.75f)
+            else -> grasslandMap?.groundY ?: (height * 0.75f)
+        }
+        
+        // Kiểm tra 50% rơi trái tim
+        if (ItemDropConfig.shouldDropItem(0.5f)) {
+            healthHearts.add(HealthHeart(gameContext, x, groundY - 150f))
+        }
+        
+        // Kiểm tra 50% rơi skill Black Hole
+        if (ItemDropConfig.shouldDropBlackHoleSkill()) {
+            blackHoleSkillItems.add(BlackHoleSkillItem(gameContext, x, groundY - 150f))
+        }
+        
+        // Kiểm tra 50% rơi skill Laser Beam
+        if (ItemDropConfig.shouldDropLaserBeamSkill()) {
+            laserBeamSkillItems.add(LaserBeamSkillItem(gameContext, x, groundY - 150f))
+        }
+        
+        // Kiểm tra 50% rơi skill Shield
+        if (ItemDropConfig.shouldDropShieldSkill()) {
+            shieldSkillItems.add(ShieldSkillItem(gameContext, x, groundY - 150f))
+        }
+    }
+
+    /**
+     * Update tất cả items
+     */
+    private fun updateItems() {
+        // Update health hearts
+        healthHearts.forEach { it.update() }
+        
+        // Xóa items đã hết thời gian tồn tại
+        healthHearts.removeAll { it.shouldBeRemoved() }
+        
+        // Update black hole skill items
+        blackHoleSkillItems.forEach { it.update() }
+        blackHoleSkillItems.removeAll { it.shouldBeRemoved() }
+        
+        // Update laser beam skill items
+        laserBeamSkillItems.forEach { it.update() }
+        laserBeamSkillItems.removeAll { it.shouldBeRemoved() }
+        
+        // Update shield skill items
+        shieldSkillItems.forEach { it.update() }
+        shieldSkillItems.removeAll { it.shouldBeRemoved() }
+        
+        // Update black hole effects
+        blackHoleEffects.forEach { effect ->
+            effect.update()
+            
+            if (effect.isActive()) {
+                applyBlackHoleEffects(effect)
+            }
+        }
+        blackHoleEffects.removeAll { !it.isActive() }
+        
+        // Update laser beam effects
+        laserBeamEffects.forEach { effect ->
+            effect.update()
+            
+            if (effect.isActive() && !effect.hasDamageBeenDealt()) {
+                applyLaserBeamDamage(effect)
+            }
+        }
+        laserBeamEffects.removeAll { !it.isActive() }
+        
+        // Update shield effect
+        shieldEffect?.let { shield ->
+            val playerX = fighter?.getX() ?: samuraiArcher?.getX() ?: samuraiCommander?.getX() ?: 0f
+            val playerY = fighter?.y ?: samuraiArcher?.y ?: samuraiCommander?.y ?: 0f
+            shield.update(playerX, playerY)
+            
+            if (!shield.isActive()) {
+                shieldEffect = null
+            }
+        }
+        
+        // Update buttons
+        pickupButton.update()
+        blackHoleSkillButton?.update()
+        laserBeamSkillButton?.update()
+        shieldSkillButton?.update()
+    }
+
+    /**
+     * Kiểm tra và nhặt item
+     */
+    private fun checkItemPickup(playerX: Float, playerY: Float) {
+        val pickupRange = 100f
+        
+        // Kiểm tra nhặt health heart
+        healthHearts.forEach { heart ->
+            if (!heart.isCollected() && heart.isCollidingWith(playerX, playerY, pickupRange)) {
+                // Hồi máu cho hero (20 HP)
+                fighter?.heal(20)
+                samuraiArcher?.heal(20)
+                samuraiCommander?.heal(20)
+                
+                // Đánh dấu đã nhặt
+                heart.collect()
+            }
+        }
+    }
+    
+    /**
+     * Kiểm tra xem player có gần skill item không để hiện nút nhặt
+     */
+    private fun checkSkillPickupRange(playerX: Float, playerY: Float) {
+        val pickupRange = 150f
+        var nearestSkill: BlackHoleSkillItem? = null
+        var nearestLaserSkill: LaserBeamSkillItem? = null
+        
+        // Tìm black hole skill item gần nhất
+        for (skill in blackHoleSkillItems) {
+            if (!skill.isPickedUp() && skill.isCollidingWith(playerX, playerY, pickupRange)) {
+                nearestSkill = skill
+                break
+            }
+        }
+        
+        // Tìm laser beam skill item gần nhất
+        for (skill in laserBeamSkillItems) {
+            if (!skill.isPickedUp() && skill.isCollidingWith(playerX, playerY, pickupRange)) {
+                nearestLaserSkill = skill
+                break
+            }
+        }
+        
+        // Tìm shield skill item gần nhất
+        var nearestShieldSkill: ShieldSkillItem? = null
+        for (skill in shieldSkillItems) {
+            if (!skill.isPickedUp() && skill.isCollidingWith(playerX, playerY, pickupRange)) {
+                nearestShieldSkill = skill
+                break
+            }
+        }
+        
+        // Ưu tiên hiển thị nút cho skill gần nhất
+        if (nearestSkill != null) {
+            // Hiện nút nhặt tại vị trí skill (theo camera)
+            val buttonX = nearestSkill.getX() - cameraX
+            val buttonY = nearestSkill.getY() - cameraY - 100f
+            pickupButton.show(buttonX, buttonY)
+        } else if (nearestLaserSkill != null) {
+            // Hiện nút nhặt tại vị trí laser skill
+            val buttonX = nearestLaserSkill.getX() - cameraX
+            val buttonY = nearestLaserSkill.getY() - cameraY - 100f
+            pickupButton.show(buttonX, buttonY)
+        } else if (nearestShieldSkill != null) {
+            // Hiện nút nhặt tại vị trí shield skill
+            val buttonX = nearestShieldSkill.getX() - cameraX
+            val buttonY = nearestShieldSkill.getY() - cameraY - 100f
+            pickupButton.show(buttonX, buttonY)
+        } else {
+            pickupButton.hide()
+        }
+    }
+    
+    /**
+     * Thử nhặt skill khi bấm nút
+     */
+    private fun tryPickupSkill() {
+        val playerX = fighter?.getX() ?: samuraiArcher?.getX() ?: samuraiCommander?.getX() ?: 0f
+        val playerY = fighter?.y ?: samuraiArcher?.y ?: samuraiCommander?.y ?: 0f
+        val pickupRange = 150f
+        
+        // Thử nhặt Black Hole skill
+        for (skill in blackHoleSkillItems) {
+            if (!skill.isPickedUp() && skill.isCollidingWith(playerX, playerY, pickupRange)) {
+                skill.pickup()
+                unlockBlackHoleSkill()
+                pickupButton.hide()
+                return
+            }
+        }
+        
+        // Thử nhặt Laser Beam skill
+        for (skill in laserBeamSkillItems) {
+            if (!skill.isPickedUp() && skill.isCollidingWith(playerX, playerY, pickupRange)) {
+                skill.pickup()
+                unlockLaserBeamSkill()
+                pickupButton.hide()
+                return
+            }
+        }
+        
+        // Thử nhặt Shield skill
+        for (skill in shieldSkillItems) {
+            if (!skill.isPickedUp() && skill.isCollidingWith(playerX, playerY, pickupRange)) {
+                skill.pickup()
+                unlockShieldSkill()
+                pickupButton.hide()
+                return
+            }
+        }
+    }
+    
+    /**
+     * Unlock Black Hole Skill
+     */
+    private fun unlockBlackHoleSkill() {
+        // Luôn tạo button mới mỗi khi nhặt (cho phép dùng 1 lần mỗi lần nhặt)
+        hasBlackHoleSkill = true
+        
+        val screenWidth = width.toFloat()
+        val screenHeight = height.toFloat()
+        // Đặt phía trên joystick, phía trái màn hình
+        blackHoleSkillButton = BlackHoleSkillButton(
+            250f,  // Phía trên joystick
+            screenHeight - 350f
+        )
+    }
+    
+    /**
+     * Cast Black Hole Skill
+     */
+    private fun castBlackHole() {
+        val playerX = fighter?.getX() ?: samuraiArcher?.getX() ?: samuraiCommander?.getX() ?: 0f
+        val playerY = fighter?.y ?: samuraiArcher?.y ?: samuraiCommander?.y ?: 0f
+        val playerFacingRight = fighter?.getFacingRight() ?: samuraiArcher?.getFacingRight() ?: samuraiCommander?.getFacingRight() ?: true
+        
+        // Spawn hố đen cách player 300 pixels theo hướng đang nhìn
+        val spawnDistance = 300f
+        val direction = if (playerFacingRight) 1 else -1
+        val spawnX = playerX + spawnDistance * direction
+        val spawnY = playerY
+        
+        blackHoleEffects.add(BlackHoleEffect(spawnX, spawnY))
+        // Đánh dấu skill đã dùng -> Ẩn nút (chỉ dùng 1 lần)
+        blackHoleSkillButton?.markAsUsed()
+    }
+    
+    /**
+     * Áp dụng hiệu ứng hố đen lên enemies
+     * Chỉ gây damage, không hút (vì x, y là private)
+     */
+    private fun applyBlackHoleEffects(effect: BlackHoleEffect) {
+        // Áp dụng lên skeletons
+        skeletons.forEach { skeleton ->
+            if (!skeleton.isDead() && effect.isInRange(skeleton.getX(), skeleton.y)) {
+                // Gây damage mỗi giây
+                if (effect.shouldDealDamage()) {
+                    damageSkeletonAndCheck(skeleton, effect.getDamage())
+                }
+            }
+        }
+        
+        // Áp dụng lên demons
+        demons.forEach { demon ->
+            if (!demon.isDead() && effect.isInRange(demon.getX(), demon.y)) {
+                if (effect.shouldDealDamage()) {
+                    damageDemonAndCheck(demon, effect.getDamage())
+                }
+            }
+        }
+        
+        // Áp dụng lên medusas
+        medusas.forEach { medusa ->
+            if (!medusa.isDead() && effect.isInRange(medusa.getX(), medusa.y)) {
+                if (effect.shouldDealDamage()) {
+                    damageMedusaAndCheck(medusa, effect.getDamage())
+                }
+            }
+        }
+        
+        // Áp dụng lên jinns
+        jinns.forEach { jinn ->
+            if (!jinn.isDead() && effect.isInRange(jinn.getX(), jinn.y)) {
+                if (effect.shouldDealDamage()) {
+                    damageJinnAndCheck(jinn, effect.getDamage())
+                }
+            }
+        }
+        
+        // Áp dụng lên small dragons
+        smallDragons.forEach { dragon ->
+            if (!dragon.isDead() && effect.isInRange(dragon.getX(), dragon.y)) {
+                if (effect.shouldDealDamage()) {
+                    damageSmallDragonAndCheck(dragon, effect.getDamage())
+                }
+            }
+        }
+        
+        // Áp dụng lên dragons
+        dragons.forEach { dragon ->
+            if (!dragon.isDead() && effect.isInRange(dragon.getX(), dragon.y)) {
+                if (effect.shouldDealDamage()) {
+                    damageDragonAndCheck(dragon, effect.getDamage())
+                }
+            }
+        }
+    }
+    
+    /**
+     * Unlock Laser Beam Skill
+     */
+    private fun unlockLaserBeamSkill() {
+        // Luôn tạo button mới mỗi khi nhặt (cho phép dùng 1 lần mỗi lần nhặt)
+        hasLaserBeamSkill = true
+        
+        val screenWidth = width.toFloat()
+        val screenHeight = height.toFloat()
+        // Đặt bên phải Black Hole button
+        laserBeamSkillButton = LaserBeamSkillButton(
+            gameContext,
+            380f,  // Bên phải Black Hole
+            screenHeight - 350f
+        )
+    }
+    
+    /**
+     * Cast Laser Beam Skill - Bắn laser vào quái gần nhất
+     */
+    private fun castLaserBeam() {
+        val playerX = fighter?.getX() ?: samuraiArcher?.getX() ?: samuraiCommander?.getX() ?: 0f
+        val playerY = fighter?.y ?: samuraiArcher?.y ?: samuraiCommander?.y ?: 0f
+        
+        // Tìm quái gần nhất
+        val nearestEnemy = findNearestEnemy(playerX, playerY)
+        
+        if (nearestEnemy != null) {
+            // Tạo laser beam effect
+            laserBeamEffects.add(
+                LaserBeamEffect(
+                    gameContext,
+                    playerX,
+                    playerY,
+                    nearestEnemy.x,
+                    nearestEnemy.y
+                )
+            )
+            // Đánh dấu skill đã dùng -> Ẩn nút (chỉ dùng 1 lần)
+            laserBeamSkillButton?.markAsUsed()
+        }
+    }
+    
+    /**
+     * Tìm quái gần nhất
+     */
+    // Data class để lưu thông tin enemy
+    data class EnemyInfo(val enemy: Any, val x: Float, val y: Float, val distance: Float)
+    
+    private fun findNearestEnemy(playerX: Float, playerY: Float): EnemyInfo? {
+        var nearestEnemyInfo: EnemyInfo? = null
+        var minDistance = Float.MAX_VALUE
+        
+        val allEnemies = mutableListOf<EnemyInfo>()
+        
+        // Thêm skeletons
+        skeletons.forEach { skeleton ->
+            if (!skeleton.isDead()) {
+                val dx = skeleton.getX() - playerX
+                val dy = skeleton.y - playerY
+                val distance = kotlin.math.sqrt(dx * dx + dy * dy)
+                allEnemies.add(EnemyInfo(skeleton, skeleton.getX(), skeleton.y, distance))
+            }
+        }
+        
+        // Thêm demons
+        demons.forEach { demon ->
+            if (!demon.isDead()) {
+                val dx = demon.getX() - playerX
+                val dy = demon.y - playerY
+                val distance = kotlin.math.sqrt(dx * dx + dy * dy)
+                allEnemies.add(EnemyInfo(demon, demon.getX(), demon.y, distance))
+            }
+        }
+        
+        // Thêm medusas
+        medusas.forEach { medusa ->
+            if (!medusa.isDead()) {
+                val dx = medusa.getX() - playerX
+                val dy = medusa.y - playerY
+                val distance = kotlin.math.sqrt(dx * dx + dy * dy)
+                allEnemies.add(EnemyInfo(medusa, medusa.getX(), medusa.y, distance))
+            }
+        }
+        
+        // Thêm jinns
+        jinns.forEach { jinn ->
+            if (!jinn.isDead()) {
+                val dx = jinn.getX() - playerX
+                val dy = jinn.y - playerY
+                val distance = kotlin.math.sqrt(dx * dx + dy * dy)
+                allEnemies.add(EnemyInfo(jinn, jinn.getX(), jinn.y, distance))
+            }
+        }
+        
+        // Thêm small dragons
+        smallDragons.forEach { dragon ->
+            if (!dragon.isDead()) {
+                val dx = dragon.getX() - playerX
+                val dy = dragon.y - playerY
+                val distance = kotlin.math.sqrt(dx * dx + dy * dy)
+                allEnemies.add(EnemyInfo(dragon, dragon.getX(), dragon.y, distance))
+            }
+        }
+        
+        // Thêm dragons
+        dragons.forEach { dragon ->
+            if (!dragon.isDead()) {
+                val dx = dragon.getX() - playerX
+                val dy = dragon.y - playerY
+                val distance = kotlin.math.sqrt(dx * dx + dy * dy)
+                allEnemies.add(EnemyInfo(dragon, dragon.getX(), dragon.y, distance))
+            }
+        }
+        
+        // Tìm enemy gần nhất
+        allEnemies.forEach { info ->
+            if (info.distance < minDistance) {
+                minDistance = info.distance
+                nearestEnemyInfo = info
+            }
+        }
+        
+        return nearestEnemyInfo
+    }
+    
+    /**
+     * Gây damage từ Laser Beam lên quái
+     */
+    private fun applyLaserBeamDamage(effect: LaserBeamEffect) {
+        val damage = effect.getDamage()
+        if (damage <= 0) return
+        
+        val targetX = effect.getTargetX()
+        val targetY = effect.getTargetY()
+        val tolerance = 150f  // Tăng tolerance để đảm bảo trúng kể cả khi quái di chuyển do Black Hole
+        
+        var damageApplied = false
+        
+        // Áp dụng lên skeletons
+        skeletons.forEach { skeleton ->
+            if (!skeleton.isDead()) {
+                val dx = kotlin.math.abs(skeleton.getX() - targetX)
+                val dy = kotlin.math.abs(skeleton.y - targetY)
+                if (dx < tolerance && dy < tolerance) {
+                    damageSkeletonAndCheck(skeleton, damage)
+                    damageApplied = true
+                    return@forEach  // Chỉ damage 1 enemy
+                }
+            }
+        }
+        
+        if (damageApplied) {
+            effect.markDamageAsDealt()
+            return
+        }
+        
+        // Áp dụng lên demons
+        demons.forEach { demon ->
+            if (!demon.isDead()) {
+                val dx = kotlin.math.abs(demon.getX() - targetX)
+                val dy = kotlin.math.abs(demon.y - targetY)
+                if (dx < tolerance && dy < tolerance) {
+                    damageDemonAndCheck(demon, damage)
+                    damageApplied = true
+                    return@forEach
+                }
+            }
+        }
+        
+        if (damageApplied) {
+            effect.markDamageAsDealt()
+            return
+        }
+        
+        // Áp dụng lên medusas
+        medusas.forEach { medusa ->
+            if (!medusa.isDead()) {
+                val dx = kotlin.math.abs(medusa.getX() - targetX)
+                val dy = kotlin.math.abs(medusa.y - targetY)
+                if (dx < tolerance && dy < tolerance) {
+                    damageMedusaAndCheck(medusa, damage)
+                    damageApplied = true
+                    return@forEach
+                }
+            }
+        }
+        
+        if (damageApplied) {
+            effect.markDamageAsDealt()
+            return
+        }
+        
+        // Áp dụng lên jinns
+        jinns.forEach { jinn ->
+            if (!jinn.isDead()) {
+                val dx = kotlin.math.abs(jinn.getX() - targetX)
+                val dy = kotlin.math.abs(jinn.y - targetY)
+                if (dx < tolerance && dy < tolerance) {
+                    damageJinnAndCheck(jinn, damage)
+                    damageApplied = true
+                    return@forEach
+                }
+            }
+        }
+        
+        if (damageApplied) {
+            effect.markDamageAsDealt()
+            return
+        }
+        
+        // Áp dụng lên small dragons
+        smallDragons.forEach { dragon ->
+            if (!dragon.isDead()) {
+                val dx = kotlin.math.abs(dragon.getX() - targetX)
+                val dy = kotlin.math.abs(dragon.y - targetY)
+                if (dx < tolerance && dy < tolerance) {
+                    damageSmallDragonAndCheck(dragon, damage)
+                    damageApplied = true
+                    return@forEach
+                }
+            }
+        }
+        
+        if (damageApplied) {
+            effect.markDamageAsDealt()
+            return
+        }
+        
+        // Áp dụng lên dragons
+        dragons.forEach { dragon ->
+            if (!dragon.isDead()) {
+                val dx = kotlin.math.abs(dragon.getX() - targetX)
+                val dy = kotlin.math.abs(dragon.y - targetY)
+                if (dx < tolerance && dy < tolerance) {
+                    damageDragonAndCheck(dragon, damage)
+                    damageApplied = true
+                    return@forEach
+                }
+            }
+        }
+        
+        // Đánh dấu đã deal damage
+        if (damageApplied) {
+            effect.markDamageAsDealt()
+        }
+    }
+    
+    /**
+     * Unlock Shield Skill
+     */
+    private fun unlockShieldSkill() {
+        // Luôn tạo button mới mỗi khi nhặt (cho phép dùng 1 lần mỗi lần nhặt)
+        hasShieldSkill = true
+        
+        val screenWidth = width.toFloat()
+        val screenHeight = height.toFloat()
+        // Đặt bên phải Laser Beam button
+        shieldSkillButton = ShieldSkillButton(
+            gameContext,
+            510f,  // Bên phải Laser Beam
+            screenHeight - 350f
+        )
+    }
+    
+    /**
+     * Cast Shield Skill - Tạo khiên bảo vệ quanh nhân vật
+     */
+    private fun castShield() {
+        val playerX = fighter?.getX() ?: samuraiArcher?.getX() ?: samuraiCommander?.getX() ?: 0f
+        val playerY = fighter?.y ?: samuraiArcher?.y ?: samuraiCommander?.y ?: 0f
+        
+        // Tạo shield effect
+        shieldEffect = ShieldEffect(playerX, playerY)
+        
+        // Đánh dấu skill đã dùng -> Ẩn nút (chỉ dùng 1 lần)
+        shieldSkillButton?.markAsUsed()
+    }
+    
+    /**
+     * Áp dụng damage lên player, có tính shield chặn
+     */
+    private fun applyDamageToPlayer(damage: Int) {
+        var actualDamage = damage
+        
+        // Kiểm tra xem có shield active không
+        shieldEffect?.let { shield ->
+            if (shield.isActive()) {
+                // Shield chặn damage
+                actualDamage = shield.absorbDamage(damage)
+            }
+        }
+        
+        // Áp dụng damage còn lại (nếu có) lên player
+        if (actualDamage > 0) {
+            fighter?.takeDamage(actualDamage)
+            samuraiArcher?.takeDamage(actualDamage)
+            samuraiCommander?.takeDamage(actualDamage)
         }
     }
 
