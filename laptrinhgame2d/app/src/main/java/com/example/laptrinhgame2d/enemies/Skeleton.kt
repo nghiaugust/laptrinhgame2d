@@ -36,7 +36,7 @@ class Skeleton(private val context: Context, private var x: Float, var y: Float)
 
     // Dead timer - biến mất sau 5 giây (300 frames)
     private var deadTimer = 0
-    private val deadDuration = 300 // 5 seconds at 60 FPS
+    private val deadDuration = 120 // 5 seconds at 60 FPS
 
     // AI behavior
     private var targetX = x

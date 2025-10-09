@@ -38,7 +38,7 @@ class Dragon(private val context: Context, private var x: Float, var y: Float) {
 
     // Dead timer
     private var deadTimer = 0
-    private val deadDuration = 300
+    private val deadDuration = 120
 
     // AI behavior
     private var targetX = x

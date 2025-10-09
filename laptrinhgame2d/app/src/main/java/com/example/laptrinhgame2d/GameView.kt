@@ -70,6 +70,8 @@ class GameView(
         private var persistedSamuraiCommanderHP: Int? = null
 
         private var showDebugPickup = false
+
+        // Trong function update(), thêm phần này sau khi update enemies:
         
         /**
          * Reset toàn bộ skills đã lưu (gọi khi game over hoặc về main menu)
@@ -879,7 +881,7 @@ class GameView(
         // ===== KIỂM TRA VÀ SPAWN WAVE TIẾP THEO (TRƯỚC KHI REMOVE) =====
         checkAndSpawnNextWave()
 
-        // Remove enemies đã chết (counter đã được tăng trong damageSkeletonAndCheck, damageDemonAndCheck, etc.)
+        // Giữ nguyên code cũ, chỉ đổi thời gian
         skeletons.removeAll { it.shouldBeRemoved() }
         demons.removeAll { it.shouldBeRemoved() }
         medusas.removeAll { it.shouldRemove() }
