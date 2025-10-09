@@ -684,4 +684,230 @@ object BackgroundGenerator {
         val ground = generateVolcanoGroundTexture(512, 512)
         saveBitmapToInternalStorage(context, ground, "volcano_ground.png")
     }
+
+    // Thêm vào cuối class BackgroundGenerator
+
+    /**
+     * Tạo tất cả các background cần thiết cho ICE
+     */
+    fun generateAllIceBackgrounds(context: Context, screenWidth: Int, screenHeight: Int) {
+        // Ice sky - gradient xanh lạnh
+        val iceSky = generateIceSkyBackground(screenWidth * 2, screenHeight)
+        saveBitmapToInternalStorage(context, iceSky, "ice_sky.png")
+
+        // Ice mountains - núi băng
+        val iceMountains = generateIceMountainsBackground(screenWidth * 2, screenHeight)
+        saveBitmapToInternalStorage(context, iceMountains, "ice_mountains.png")
+
+        // Ice hills - đồi băng
+        val iceHills = generateIceHillsBackground(screenWidth * 2, screenHeight)
+        saveBitmapToInternalStorage(context, iceHills, "ice_hills.png")
+
+        // Ice ground - mặt đất băng
+        val iceGround = generateIceGroundTexture(512, 512)
+        saveBitmapToInternalStorage(context, iceGround, "ice_ground.png")
+    }
+
+    /**
+     * Tạo tất cả các background cần thiết cho SPACE
+     */
+    fun generateAllSpaceBackgrounds(context: Context, screenWidth: Int, screenHeight: Int) {
+        // Space sky - bầu trời vũ trụ
+        val spaceSky = generateSpaceSkyBackground(screenWidth * 2, screenHeight)
+        saveBitmapToInternalStorage(context, spaceSky, "space_sky.png")
+
+        // Space mountains - cấu trúc vũ trụ xa
+        val spaceStructures = generateSpaceMountainsBackground(screenWidth * 2, screenHeight)
+        saveBitmapToInternalStorage(context, spaceStructures, "space_mountains.png")
+
+        // Space hills - cấu trúc vũ trụ gần
+        val spaceHills = generateSpaceHillsBackground(screenWidth * 2, screenHeight)
+        saveBitmapToInternalStorage(context, spaceHills, "space_hills.png")
+
+        // Space ground - sàn kim loại
+        val spaceGround = generateSpaceGroundTexture(512, 512)
+        saveBitmapToInternalStorage(context, spaceGround, "space_ground.png")
+    }
+
+    // ===== ICE BACKGROUNDS =====
+    fun generateIceSkyBackground(width: Int, height: Int): Bitmap {
+        val bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
+        val canvas = Canvas(bitmap)
+
+        val paint = Paint().apply {
+            shader = LinearGradient(
+                0f, 0f, 0f, height.toFloat(),
+                Color.parseColor("#1E3A8A"), // Dark blue
+                Color.parseColor("#E0F2FE"), // Light cyan
+                Shader.TileMode.CLAMP
+            )
+        }
+        canvas.drawRect(0f, 0f, width.toFloat(), height.toFloat(), paint)
+        return bitmap
+    }
+
+    fun generateIceMountainsBackground(width: Int, height: Int): Bitmap {
+        val bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
+        val canvas = Canvas(bitmap)
+        canvas.drawColor(Color.TRANSPARENT)
+
+        val paint = Paint().apply {
+            color = Color.parseColor("#DBEAFE")
+            style = Paint.Style.FILL
+            alpha = 150
+        }
+
+        val path = Path().apply {
+            moveTo(0f, height.toFloat())
+            lineTo(width * 0.2f, height * 0.3f)
+            lineTo(width * 0.5f, height * 0.4f)
+            lineTo(width * 0.8f, height * 0.25f)
+            lineTo(width.toFloat(), height * 0.35f)
+            lineTo(width.toFloat(), height.toFloat())
+            close()
+        }
+        canvas.drawPath(path, paint)
+        return bitmap
+    }
+
+    fun generateIceHillsBackground(width: Int, height: Int): Bitmap {
+        val bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
+        val canvas = Canvas(bitmap)
+        canvas.drawColor(Color.TRANSPARENT)
+
+        val paint = Paint().apply {
+            color = Color.parseColor("#A5F3FC")
+            style = Paint.Style.FILL
+            alpha = 180
+        }
+
+        val path = Path().apply {
+            moveTo(0f, height.toFloat())
+            lineTo(width * 0.15f, height * 0.7f)
+            lineTo(width * 0.4f, height * 0.75f)
+            lineTo(width * 0.6f, height * 0.65f)
+            lineTo(width * 0.85f, height * 0.72f)
+            lineTo(width.toFloat(), height * 0.75f)
+            lineTo(width.toFloat(), height.toFloat())
+            close()
+        }
+        canvas.drawPath(path, paint)
+        return bitmap
+    }
+
+    fun generateIceGroundTexture(width: Int, height: Int): Bitmap {
+        val bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
+        val canvas = Canvas(bitmap)
+
+        val paint = Paint().apply {
+            color = Color.parseColor("#DBEAFE")
+            style = Paint.Style.FILL
+        }
+        canvas.drawRect(0f, 0f, width.toFloat(), height.toFloat(), paint)
+
+        // Ice crystals pattern
+        val crystalPaint = Paint().apply {
+            color = Color.parseColor("#A5F3FC")
+            style = Paint.Style.FILL
+        }
+
+        for (i in 0 until width step 40) {
+            for (j in 0 until height step 35) {
+                canvas.drawCircle(i.toFloat(), j.toFloat(), 8f, crystalPaint)
+            }
+        }
+        return bitmap
+    }
+
+    // ===== SPACE BACKGROUNDS =====
+    fun generateSpaceSkyBackground(width: Int, height: Int): Bitmap {
+        val bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
+        val canvas = Canvas(bitmap)
+
+        val paint = Paint().apply {
+            shader = LinearGradient(
+                0f, 0f, 0f, height.toFloat(),
+                Color.parseColor("#0F0F23"), // Very dark blue
+                Color.parseColor("#16213E"), // Dark blue
+                Shader.TileMode.CLAMP
+            )
+        }
+        canvas.drawRect(0f, 0f, width.toFloat(), height.toFloat(), paint)
+        return bitmap
+    }
+
+    fun generateSpaceMountainsBackground(width: Int, height: Int): Bitmap {
+        val bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
+        val canvas = Canvas(bitmap)
+        canvas.drawColor(Color.TRANSPARENT)
+
+        val paint = Paint().apply {
+            color = Color.parseColor("#2D3748")
+            style = Paint.Style.FILL
+            alpha = 120
+        }
+
+        val path = Path().apply {
+            moveTo(0f, height.toFloat())
+            lineTo(width * 0.25f, height * 0.4f)
+            lineTo(width * 0.5f, height * 0.35f)
+            lineTo(width * 0.75f, height * 0.45f)
+            lineTo(width.toFloat(), height * 0.3f)
+            lineTo(width.toFloat(), height.toFloat())
+            close()
+        }
+        canvas.drawPath(path, paint)
+        return bitmap
+    }
+
+    fun generateSpaceHillsBackground(width: Int, height: Int): Bitmap {
+        val bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
+        val canvas = Canvas(bitmap)
+        canvas.drawColor(Color.TRANSPARENT)
+
+        val paint = Paint().apply {
+            color = Color.parseColor("#4A5568")
+            style = Paint.Style.FILL
+            alpha = 160
+        }
+
+        val path = Path().apply {
+            moveTo(0f, height.toFloat())
+            lineTo(width * 0.2f, height * 0.65f)
+            lineTo(width * 0.45f, height * 0.7f)
+            lineTo(width * 0.7f, height * 0.6f)
+            lineTo(width * 0.9f, height * 0.68f)
+            lineTo(width.toFloat(), height * 0.65f)
+            lineTo(width.toFloat(), height.toFloat())
+            close()
+        }
+        canvas.drawPath(path, paint)
+        return bitmap
+    }
+
+    fun generateSpaceGroundTexture(width: Int, height: Int): Bitmap {
+        val bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
+        val canvas = Canvas(bitmap)
+
+        val paint = Paint().apply {
+            color = Color.parseColor("#2D3748")
+            style = Paint.Style.FILL
+        }
+        canvas.drawRect(0f, 0f, width.toFloat(), height.toFloat(), paint)
+
+        // Tech grid pattern
+        val gridPaint = Paint().apply {
+            color = Color.parseColor("#00D9FF")
+            strokeWidth = 2f
+            style = Paint.Style.STROKE
+        }
+
+        for (i in 0 until width step 50) {
+            canvas.drawLine(i.toFloat(), 0f, i.toFloat(), height.toFloat(), gridPaint)
+        }
+        for (j in 0 until height step 50) {
+            canvas.drawLine(0f, j.toFloat(), width.toFloat(), j.toFloat(), gridPaint)
+        }
+        return bitmap
+    }
 }

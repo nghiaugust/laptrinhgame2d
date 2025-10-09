@@ -267,11 +267,183 @@ class SpawnConfig {
             )
         ) // Total: 15 con, 4 waves
 
+        // ===== ❄️ ICE LEVEL (Very Hard) - 4 WAVES =====
+        private val ICE_SPAWN = LevelSpawnConfig(
+            level = LevelManager.Level.ICE,
+            useWaveSystem = true,
+            waves = listOf(
+                // Wave 1: 2 Skeleton + 2 Demon (4 con) - Spawn ngay khi bắt đầu
+                WaveConfig(
+                    waveNumber = 1,
+                    spawnOnPreviousWaveCleared = false,
+                    delaySeconds = 0f,
+                    enemies = mapOf(
+                        EnemyType.SKELETON to 2,
+                        EnemyType.DEMON to 2
+                    ),
+                    baseX = 800f,
+                    baseY = 400f,
+                    spacingX = 350f,
+                    randomRangeX = 250f,
+                    randomRangeY = 150f,
+                    pattern = SpawnPattern.LINE
+                ),
+
+                // Wave 2: 1 Skeleton + 2 Demon + 2 Medusa (5 con) - Spawn sau khi Wave 1 chết hết
+                WaveConfig(
+                    waveNumber = 2,
+                    spawnOnPreviousWaveCleared = true,
+                    delaySeconds = 2f,
+                    enemies = mapOf(
+                        EnemyType.SKELETON to 1,
+                        EnemyType.DEMON to 2,
+                        EnemyType.MEDUSA to 2
+                    ),
+                    baseX = 1000f,
+                    baseY = 400f,
+                    spacingX = 400f,
+                    randomRangeX = 300f,
+                    randomRangeY = 200f,
+                    pattern = SpawnPattern.SCATTERED
+                ),
+
+                // Wave 3: 1 Demon + 2 Medusa + 2 Jinn (5 con) - Spawn sau khi Wave 2 chết hết
+                WaveConfig(
+                    waveNumber = 3,
+                    spawnOnPreviousWaveCleared = true,
+                    delaySeconds = 3f,
+                    enemies = mapOf(
+                        EnemyType.DEMON to 1,
+                        EnemyType.MEDUSA to 2,
+                        EnemyType.JINN to 2
+                    ),
+                    baseX = 1200f,
+                    baseY = 400f,
+                    spacingX = 450f,
+                    randomRangeX = 350f,
+                    randomRangeY = 250f,
+                    pattern = SpawnPattern.CLUSTER
+                ),
+
+                // Wave 4: 1 Jinn + 1 Small Dragon (2 con) - ICE BOSS WAVE
+                WaveConfig(
+                    waveNumber = 4,
+                    spawnOnPreviousWaveCleared = true,
+                    delaySeconds = 3f,
+                    enemies = mapOf(
+                        EnemyType.JINN to 1,
+                        EnemyType.SMALL_DRAGON to 1
+                    ),
+                    baseX = 1500f,
+                    baseY = 400f,
+                    spacingX = 600f,
+                    randomRangeX = 400f,
+                    randomRangeY = 300f,
+                    pattern = SpawnPattern.ARENA
+                )
+            )
+        ) // Total: 16 con, 4 waves
+
+        // ===== 🚀 SPACE LEVEL (Extreme) - 5 WAVES =====
+        private val SPACE_SPAWN = LevelSpawnConfig(
+            level = LevelManager.Level.SPACE,
+            useWaveSystem = true,
+            waves = listOf(
+                // Wave 1: 2 Skeleton + 2 Demon (4 con) - Spawn ngay khi bắt đầu
+                WaveConfig(
+                    waveNumber = 1,
+                    spawnOnPreviousWaveCleared = false,
+                    delaySeconds = 0f,
+                    enemies = mapOf(
+                        EnemyType.SKELETON to 2,
+                        EnemyType.DEMON to 2
+                    ),
+                    baseX = 800f,
+                    baseY = 400f,
+                    spacingX = 350f,
+                    randomRangeX = 250f,
+                    randomRangeY = 150f,
+                    pattern = SpawnPattern.LINE
+                ),
+
+                // Wave 2: 1 Skeleton + 2 Demon + 1 Medusa (4 con)
+                WaveConfig(
+                    waveNumber = 2,
+                    spawnOnPreviousWaveCleared = true,
+                    delaySeconds = 2f,
+                    enemies = mapOf(
+                        EnemyType.SKELETON to 1,
+                        EnemyType.DEMON to 2,
+                        EnemyType.MEDUSA to 1
+                    ),
+                    baseX = 1000f,
+                    baseY = 400f,
+                    spacingX = 400f,
+                    randomRangeX = 300f,
+                    randomRangeY = 200f,
+                    pattern = SpawnPattern.SCATTERED
+                ),
+
+                // Wave 3: 2 Medusa + 2 Jinn (4 con)
+                WaveConfig(
+                    waveNumber = 3,
+                    spawnOnPreviousWaveCleared = true,
+                    delaySeconds = 3f,
+                    enemies = mapOf(
+                        EnemyType.MEDUSA to 2,
+                        EnemyType.JINN to 2
+                    ),
+                    baseX = 1200f,
+                    baseY = 400f,
+                    spacingX = 450f,
+                    randomRangeX = 350f,
+                    randomRangeY = 250f,
+                    pattern = SpawnPattern.WAVE
+                ),
+
+                // Wave 4: 1 Jinn + 2 Small Dragon (3 con)
+                WaveConfig(
+                    waveNumber = 4,
+                    spawnOnPreviousWaveCleared = true,
+                    delaySeconds = 3f,
+                    enemies = mapOf(
+                        EnemyType.JINN to 1,
+                        EnemyType.SMALL_DRAGON to 2
+                    ),
+                    baseX = 1400f,
+                    baseY = 400f,
+                    spacingX = 500f,
+                    randomRangeX = 400f,
+                    randomRangeY = 300f,
+                    pattern = SpawnPattern.CLUSTER
+                ),
+
+                // Wave 5: 1 Small Dragon + 1 Dragon (2 con) - FINAL SPACE BOSS
+                WaveConfig(
+                    waveNumber = 5,
+                    spawnOnPreviousWaveCleared = true,
+                    delaySeconds = 4f,
+                    enemies = mapOf(
+                        EnemyType.SMALL_DRAGON to 1,
+                        EnemyType.DRAGON to 1
+                    ),
+                    baseX = 1600f,
+                    baseY = 400f,
+                    spacingX = 700f,
+                    randomRangeX = 500f,
+                    randomRangeY = 400f,
+                    pattern = SpawnPattern.ARENA
+                )
+            )
+        ) // Total: 17 con, 5 waves
+
         // Map tất cả config theo level
         private val SPAWN_CONFIGS = mapOf(
             LevelManager.Level.GRASSLAND to GRASSLAND_SPAWN,
             LevelManager.Level.DESERT to DESERT_SPAWN,
-            LevelManager.Level.VOLCANO to VOLCANO_SPAWN
+            LevelManager.Level.VOLCANO to VOLCANO_SPAWN,
+            LevelManager.Level.ICE to ICE_SPAWN,        // Thêm mới
+            LevelManager.Level.SPACE to SPACE_SPAWN     // Thêm mới
         )
 
         /**

@@ -41,6 +41,8 @@ import com.example.laptrinhgame2d.items.skills.PickupButton
 import com.example.laptrinhgame2d.maps.DesertMap
 import com.example.laptrinhgame2d.maps.GrasslandMap
 import com.example.laptrinhgame2d.maps.VolcanoMap
+import com.example.laptrinhgame2d.maps.IceMap
+import com.example.laptrinhgame2d.maps.SpaceMap
 import com.example.laptrinhgame2d.victory.VictoryDialog
 import com.example.laptrinhgame2d.victory.VictoryHistoryActivity
 import com.example.laptrinhgame2d.victory.VictoryManager
@@ -132,6 +134,8 @@ class GameView(
     private var grasslandMap: GrasslandMap? = null
     private var desertMap: DesertMap? = null
     private var volcanoMap: VolcanoMap? = null
+    private var iceMap: IceMap? = null          // THÊM
+    private var spaceMap: SpaceMap? = null      // THÊM
 
     // Enemies - Sử dụng config từ LevelManager
     private val skeletons = mutableListOf<Skeleton>()
@@ -443,15 +447,19 @@ class GameView(
         val screenWidth = width.toFloat()
         val screenHeight = height.toFloat()
 
-        // Khởi tạo 3 maps
+        // Khởi tạo 5 maps
         grasslandMap = GrasslandMap(gameContext, width, height)
         desertMap = DesertMap(gameContext, width, height)
         volcanoMap = VolcanoMap(gameContext, width, height)
+        iceMap = IceMap(gameContext, width, height)        // THÊM
+        spaceMap = SpaceMap(gameContext, width, height)    // THÊM
 
         // Lấy groundY từ map hiện tại
         val groundY = when (mapType) {
             2 -> desertMap?.groundY ?: (screenHeight * 0.75f)
             3 -> volcanoMap?.groundY ?: (screenHeight * 0.75f)
+            4 -> iceMap?.groundY ?: (screenHeight * 0.8f)      // THÊM
+            5 -> spaceMap?.groundY ?: (screenHeight * 0.75f)   // THÊM
             else -> grasslandMap?.groundY ?: (screenHeight * 0.75f)
         }
         
@@ -779,13 +787,6 @@ class GameView(
 
         // ===== WAVE SPAWN SYSTEM =====
         checkAndSpawnNextWave()
-
-        // Update map theo loại
-        when (mapType) {
-            1 -> grasslandMap?.update(cameraX, cameraY)
-            2 -> desertMap?.update(cameraX, cameraY)
-            3 -> volcanoMap?.update(cameraX, cameraY)
-        }
 
         val joystickX = joystick.getX()
         val joystickY = 0f
@@ -1286,11 +1287,13 @@ class GameView(
     override fun draw(canvas: Canvas) {
         super.draw(canvas)
 
-        // Vẽ map theo loại
+        // Update map theo loại
         when (mapType) {
             1 -> grasslandMap?.draw(canvas, cameraX, cameraY)
             2 -> desertMap?.draw(canvas, cameraX, cameraY)
             3 -> volcanoMap?.draw(canvas, cameraX, cameraY)
+            4 -> iceMap?.draw(canvas, cameraX, cameraY)      // THÊM
+            5 -> spaceMap?.draw(canvas, cameraX, cameraY)    // THÊM
         }
 
         canvas.save()

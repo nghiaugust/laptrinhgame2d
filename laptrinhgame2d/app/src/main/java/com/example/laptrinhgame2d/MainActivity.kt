@@ -81,16 +81,11 @@ class MainActivity : AppCompatActivity() {
 
     // Chuyển sang màn tiếp theo khi bấm Next Level
     private fun startNextLevel() {
-        victoryDialog?.dismiss()
-        // Dừng gameView cũ triệt để
-        if (::gameView.isInitialized) {
-            gameView.pauseGame()
-            gameView.releaseResources() // Nếu có
-        }
         Handler(Looper.getMainLooper()).post {
-            val nextLevel = levelManager?.getNextLevel(lastLevel!!)
+            val nextLevel = levelManager?.getNextLevel(currentLevel = lastLevel!!)
             if (nextLevel != null) {
-                gameView = GameView(this, characterType, nextLevel.mapType)
+                // SỬA: Sử dụng LevelManager.getMapTypeFromLevel()
+                gameView = GameView(context = this, characterType, mapType = LevelManager.getMapTypeFromLevel(nextLevel))
                 setContentView(gameView)
             }
         }
@@ -99,9 +94,11 @@ class MainActivity : AppCompatActivity() {
     // Chơi lại màn hiện tại
     private fun replayLevel() {
         if (lastLevel == null) return
-        GameView.resetPersistedSkills()  // Reset skills khi replay
-        mapType = lastLevel!!.mapType
-        gameView = GameView(this, characterType, mapType)
+        GameView.resetPersistedSkills() // Reset skills khi replay
+
+        // SỬA: Sử dụng LevelManager.getMapTypeFromLevel()
+        mapType = LevelManager.getMapTypeFromLevel(lastLevel!!)
+        gameView = GameView(context = this, characterType, mapType)
         setContentView(gameView)
     }
 

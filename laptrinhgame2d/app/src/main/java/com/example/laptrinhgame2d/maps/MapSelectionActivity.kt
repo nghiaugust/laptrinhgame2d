@@ -21,7 +21,7 @@ class MapSelectionActivity : AppCompatActivity() {
 
     private var currentMapIndex = 0
 
-    // Danh sách thông tin maps
+    // ===== THÊM 2 MAP MỚI VÀO DANH SÁCH =====
     private val maps = listOf(
         MapInfo(
             id = 1,
@@ -40,6 +40,19 @@ class MapSelectionActivity : AppCompatActivity() {
             name = "VOLCANO",
             difficulty = "Hard ⭐⭐⭐",
             description = "A dangerous volcanic wasteland with flowing lava and toxic smoke. Only for the bravest warriors!"
+        ),
+        // ===== 2 MAP MỚI =====
+        MapInfo(
+            id = 4,
+            name = "ICE WORLD",
+            difficulty = "Very Hard ⭐⭐⭐⭐",
+            description = "A frozen wasteland with snowstorms and ice crystals. Enemies are stronger and more dangerous!"
+        ),
+        MapInfo(
+            id = 5,
+            name = "SPACE STATION",
+            difficulty = "Extreme ⭐⭐⭐⭐⭐",
+            description = "A cosmic station among the stars. The ultimate challenge with the most powerful enemies!"
         )
     )
 
@@ -47,17 +60,12 @@ class MapSelectionActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_map_selection)
 
-        // Ẩn action bar
         supportActionBar?.hide()
-
-        // Fullscreen
         window.decorView.systemUiVisibility = (
                 View.SYSTEM_UI_FLAG_FULLSCREEN or
                         View.SYSTEM_UI_FLAG_HIDE_NAVIGATION or
                         View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY
                 )
-
-        // Giữ màn hình sáng
         window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
 
         initViews()
@@ -79,36 +87,35 @@ class MapSelectionActivity : AppCompatActivity() {
         mapDifficulty.text = "Difficulty: ${map.difficulty}"
         mapDescription.text = map.description
 
-        // Set màu preview cho map image - CẬP NHẬT MÀEU MỚI
+        // ===== CẬP NHẬT MÀU CHO 5 MAPS =====
         when (map.id) {
-            1 -> mapImage.setBackgroundColor(Color.rgb(34, 139, 34)) // Green cho Grassland
-            2 -> mapImage.setBackgroundColor(Color.rgb(238, 203, 173)) // Sandy brown cho Desert
-            3 -> mapImage.setBackgroundColor(Color.rgb(139, 69, 19)) // Dark red-brown cho Volcano
+            1 -> mapImage.setBackgroundColor(Color.rgb(34, 139, 34))      // Green cho Grassland
+            2 -> mapImage.setBackgroundColor(Color.rgb(238, 203, 173))    // Sandy brown cho Desert
+            3 -> mapImage.setBackgroundColor(Color.rgb(139, 69, 19))      // Dark red-brown cho Volcano
+            4 -> mapImage.setBackgroundColor(Color.rgb(135, 206, 235))    // Sky blue cho Ice
+            5 -> mapImage.setBackgroundColor(Color.rgb(25, 25, 112))      // Midnight blue cho Space
         }
     }
 
     private fun setupButtons() {
-        // Previous map button
         findViewById<Button>(R.id.prevMapButton).setOnClickListener {
             currentMapIndex = if (currentMapIndex > 0) {
                 currentMapIndex - 1
             } else {
-                maps.size - 1
+                maps.size - 1  // Quay về map cuối (Space)
             }
             updateMapDisplay()
         }
 
-        // Next map button
         findViewById<Button>(R.id.nextMapButton).setOnClickListener {
             currentMapIndex = if (currentMapIndex < maps.size - 1) {
                 currentMapIndex + 1
             } else {
-                0
+                0  // Quay về map đầu (Grassland)
             }
             updateMapDisplay()
         }
 
-        // Select map button - chuyển sang character selection
         findViewById<Button>(R.id.selectMapButton).setOnClickListener {
             val selectedMapId = maps[currentMapIndex].id
             val intent = Intent(this, CharacterSelectionActivity::class.java)
@@ -116,7 +123,6 @@ class MapSelectionActivity : AppCompatActivity() {
             startActivity(intent)
         }
 
-        // Back button
         findViewById<Button>(R.id.backButton).setOnClickListener {
             finish()
         }
@@ -133,7 +139,6 @@ class MapSelectionActivity : AppCompatActivity() {
         }
     }
 
-    // Data class để lưu thông tin map
     data class MapInfo(
         val id: Int,
         val name: String,
